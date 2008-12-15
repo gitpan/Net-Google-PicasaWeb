@@ -21,11 +21,11 @@ Net::Google::PicasaWeb - use Google's Picasa Web API
 
 =head1 VERSION
 
-Version 0.01
+Version 0.03
 
 =cut
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 =head1 SYNOPSIS
 
@@ -121,8 +121,8 @@ sub login {
     my $self     = shift;
     my $response = $self->authenticator->login(@_);
 
-    croak "Error logging in: $@"                 unless defined $response;
-    croak "Error logging in: ", $response->error unless $response->is_success;
+    croak "error logging in: $@"                 unless defined $response;
+    croak "error logging in: ", $response->error unless $response->is_success;
 
     return 1;
 }
@@ -153,6 +153,34 @@ sub list_albums {
     return $self->list_entries(
         'Net::Google::PicasaWeb::Album',
         [ 'user', $user_id ],
+        %params
+    );
+}
+
+=head2 get_album
+
+  my $album = $service->get_album(
+      user_id  => 'hanenkamp',
+      album_id => '5143195220258642177',
+  );
+
+This will fetch a single album from the Picasa Web Albums using the given C<user_id> and C<album_id>. If C<user_id> is omitted, then "default" will be used instead.
+
+This method returns C<undef> if no such album exists.
+
+=cut
+
+sub get_album {
+    my ($self, %params) = @_;
+
+    croak "missing album_id parameter" unless defined $params{album_id};
+
+    my $user_id  = delete $params{user_id} || 'default';
+    my $album_id = delete $params{album_id};
+
+    return $self->get_entry(
+        'Net::Google::PicasaWeb::Album',
+        [ 'user', $user_id, 'albumid', $album_id ],
         %params
     );
 }
@@ -231,11 +259,52 @@ sub _feed_url {
     my ($self, $path, $query) = @_;
 
     $path = join '/', @$path if ref $path;
+    $path = 'http://picasaweb.google.com/data/feed/api/' . $path
+        unless $path =~ m{^https?:};
 
-    my $uri = URI->new('http://picasaweb.google.com/data/feed/api/' . $path);
+    my $uri = URI->new($path);
     $uri->query_form($query) if $query;
 
     return $uri;
+}
+
+=head2 get_comment
+
+  my $comment = $service->get_comment(
+      user_id    => $user_id,
+      album_id   => $album_id,
+      photo_id   => $photo_id,
+      comment_id => $comment_id,
+  );
+
+Retrieves a single comment from Picasa Web via the given C<user_id>, C<album_id>, C<photo_id>, and C<comment_id>. If C<user_id> is not given, "default" will be used.
+
+Returns C<undef> if no matching comment is found.
+
+=cut
+
+sub get_comment {
+    my ($self, %params) = @_;
+
+    croak "missing album_id parameter"   unless defined $params{album_id};
+    croak "missing photo_id parameter"   unless defined $params{photo_id};
+    croak "missing comment_id parameter" unless defined $params{comment_id};
+
+    my $user_id    = delete $params{user_id} || 'default';
+    my $album_id   = delete $params{album_id};
+    my $photo_id   = delete $params{photo_id};
+    my $comment_id = delete $params{comment_id};
+
+    return $self->get_entry(
+        'Net::Google::PicasaWeb::Comment',
+        [
+            user      => $user_id,
+            albumid   => $album_id,
+            photoid   => $photo_id,
+            commentid => $comment_id,
+        ],
+        %params
+    );
 }
 
 =head2 list_media_entries
@@ -280,6 +349,48 @@ sub list_media_entries {
 *list_photos = *list_media_entries;
 *list_videos = *list_media_entries;
 
+=head2 get_media_entry
+
+=head2 get_photo
+
+=head2 get_video
+
+  my $media_entry = $service->get_media_entry(
+      user_id  => $user_id,
+      album_id => $album_id,
+      photo_id => $photo_id,
+  );
+
+Returns a specific photo or video entry when given a C<user_id>, C<album_id>, and C<photo_id>. If C<user_id> is not given, "default" will be used.
+
+If no such photo or video can be found, C<undef> will be returned.
+
+=cut
+
+sub get_media_entry {
+    my ($self, %params) = @_;
+
+    croak "missing album_id parameter" unless defined $params{album_id};
+    croak "missing photo_id parameter" unless defined $params{photo_id};
+
+    my $user_id  = delete $params{user_id} || 'default';
+    my $album_id = delete $params{album_id};
+    my $photo_id = delete $params{photo_id};
+
+    return $self->get_entry(
+        'Net::Google::PicasaWeb::MediaEntry',
+        [
+            user    => $user_id,
+            albumid => $album_id,
+            photoid => $photo_id,
+        ],
+        %params
+    );
+}
+
+*get_photo = *get_media_entry;
+*get_video = *get_media_entry;
+
 =head1 HELPERS
 
 These helper methods are used to do some of the work.
@@ -310,10 +421,57 @@ sub request {
         elsif (/POST/)   { $request = POST  ($url, @headers, Content => $content) }
         elsif (/PUT/)    { $request = PUT   ($url, @headers, Content => $content) }
         elsif (/DELETE/) { $request = DELETE($url, @headers) }
-        else             { confess "unkonwn method [$_]" }
+        else             { confess "unknown method [$_]" }
     }
 
     return $self->user_agent->request($request);
+}
+
+=head2 get_entry
+
+  my $entry = $service->get_entry($class, $path, %params);
+
+This is used by the C<get_*> methods to pull and initialize a single object from Picasa Web.
+
+=cut
+
+sub get_entry {
+    my ($self, $class, $path, %params) = @_;
+    my $content = $self->_fetch_feed($path, %params);
+    my @entries = $self->_parse_feed($class, 'feed', $content);
+    return scalar $entries[0];
+}
+
+sub _fetch_feed {
+    my ($self, $path, %params) = @_;
+
+    my $response = $self->request( GET => $path => [ %params ] );
+
+    if ($response->is_error) {
+        croak $response->status_line;
+    }
+
+    return $response->content;
+}
+
+sub _parse_feed {
+    my ($self, $class, $element, $content) = @_;
+
+    my @items;
+    my $feed = XML::Twig->new( 
+        map_xmlns => {
+            'http://search.yahoo.com/mrss/'         => 'media',
+            'http://schemas.google.com/photos/2007' => 'gphoto',
+        },
+        twig_handlers => {
+            $element => sub {
+                push @items, $class->from_feed($self, $_);
+            },
+        },
+    );
+    $feed->parse($content);
+
+    return @items;
 }
 
 =head2 list_entries
@@ -327,27 +485,8 @@ This is used by the C<list_*> methods to pull and initialize lists of objects fr
 sub list_entries {
     my ($self, $class, $path, %params) = @_;
 
-    my $response = $self->request( GET => $path => [ %params ] );
-
-    if ($response->is_error) {
-        croak $response->status_line;
-    }
-
-    my @items;
-    my $feed = XML::Twig->new( 
-        map_xmlns => {
-            'http://search.yahoo.com/mrss/'         => 'media',
-            'http://schemas.google.com/photos/2007' => 'gphoto',
-        },
-        twig_handlers => {
-            'entry' => sub {
-                push @items, $class->from_feed($self, $_);
-            },
-        },
-    );
-    $feed->parse($response->content);
-
-    return @items;
+    my $content = $self->_fetch_feed($path, %params);
+    return $self->_parse_feed($class, 'entry', $content);
 }
 
 
