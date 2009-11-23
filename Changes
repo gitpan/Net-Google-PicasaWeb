@@ -1,5 +1,9 @@
 Revision history for Net-Google-PicasaWeb
 
+0.06    November 23, 2009
+
+    * Corrected "weaken" typo in Moose declarations with weak_ref (thanks zoul)
+
 0.05    December 21, 2008
 
     * Added MooseX::Role::Matcher to all item classes
