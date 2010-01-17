@@ -2,6 +2,7 @@ use strict;
 use warnings;
 
 package Net::Google::PicasaWeb::MediaEntry;
+our $VERSION = '0.07';
 use Moose;
 
 extends 'Net::Google::PicasaWeb::MediaFeed';
@@ -9,6 +10,10 @@ extends 'Net::Google::PicasaWeb::MediaFeed';
 =head1 NAME
 
 Net::Google::PicasaWeb::MediaEntry - represents a single Picasa Web photo or video
+
+=head1 VERSION
+
+version 0.07
 
 =head1 SYNOPSIS
 
@@ -58,6 +63,39 @@ has album_id => (
     isa => 'Str',
 );
 
+=head2 width
+
+The width of the video or photo in pixels.
+
+=cut
+
+has width => (
+    is => 'rw',  # should probably be 'ro'
+    isa => 'Int',
+);
+
+=head2 height
+
+The height of the video or photo in pixels.
+
+=cut
+
+has height => (
+    is => 'rw',  # should probably be 'ro'
+    isa => 'Int',
+);
+
+=head2 size
+
+The size of the video or photo in bytes.
+
+=cut
+
+has size => (
+    is => 'rw',  # should probably be 'ro'
+    isa => 'Int',
+);
+
 =head1 METHODS
 
 =cut
@@ -67,6 +105,14 @@ override from_feed => sub {
     my $self = $class->super($service, $entry);
 
     $self->album_id($entry->field('gphoto:albumid'));
+
+    $self->width($entry->field('gphoto:width'))
+        if $entry->field('gphoto:width');
+    $self->height($entry->field('gphoto:height'))
+        if $entry->field('gphoto:height');
+    $self->size($entry->field('gphoto:size'))
+        if $entry->field('gphoto:size');
+
     return $self;
 };
 

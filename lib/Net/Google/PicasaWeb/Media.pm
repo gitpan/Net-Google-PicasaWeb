@@ -2,6 +2,7 @@ use strict;
 use warnings;
 
 package Net::Google::PicasaWeb::Media;
+our $VERSION = '0.07';
 use Moose;
 
 extends 'Net::Google::PicasaWeb::Base';
@@ -11,6 +12,10 @@ use Carp;
 =head1 NAME
 
 Net::Google::PicasaWeb::Media - hold information about a photo or video
+
+=head1 VERSION
+
+version 0.07
 
 =head1 SYNOPSIS
 
@@ -120,6 +125,9 @@ sub from_feed {
             url       => $content->att('url'),
             mime_type => $content->att('type'),
             medium    => $content->att('medium'),
+
+            ($content->att('height') ? (height => $content->att('height')) : ()),
+            ($content->att('width')  ? (width  => $content->att('width'))  : ()),
         )
     );
     $self->thumbnails(
@@ -128,8 +136,9 @@ sub from_feed {
                 Net::Google::PicasaWeb::Media::Thumbnail->new(
                     media  => $self,
                     url    => $_->att('url'),
-                    width  => $_->att('width'),
-                    height => $_->att('height'),
+
+                    ($_->att('height') ? (height => $_->att('height')) : ()),
+                    ($_->att('width')  ? (width  => $_->att('width'))  : ()),
                 )
             } $media_group->children('media:thumbnail')
         ]
@@ -156,6 +165,7 @@ sub _fetch {
 }
 
 package Net::Google::PicasaWeb::Media::Content;
+our $VERSION = '0.07';
 use Moose;
 
 =head1 MEDIA CONTENT
@@ -222,6 +232,28 @@ has medium => (
     isa => 'Str',
 );
 
+=head3 width
+
+The width of the photo in pixels.
+
+=cut
+
+has width => (
+    is => 'rw',  # should probably be 'ro'
+    isa => 'Int',
+);
+
+=head3 height
+
+The height of the photo in pixels.
+
+=cut
+
+has height => (
+    is => 'rw',  # should probably be 'ro'
+    isa => 'Int',
+);
+
 =head1 METHODS
 
 =head2 fetch
@@ -248,6 +280,7 @@ sub fetch {
 }
 
 package Net::Google::PicasaWeb::Media::Thumbnail;
+our $VERSION = '0.07';
 use Moose;
 
 =head1 THUMBNAILS

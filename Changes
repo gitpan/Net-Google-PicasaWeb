@@ -1,11 +1,13 @@
 Revision history for Net-Google-PicasaWeb
 
-0.06_01 November 23, 2009
+0.07    January 17, 2010
 
-    * Thanks to Andy Shevchenko
-    * Use a custom Content-Type on PUT or POST
-    * Adding the add_album() method
-    * Adding the add_media_entry() method
+    * Adding height, width, and size to media entries (Thanks Benjamin Thomas)
+    * Adding height and width to media objects (Thanks Benjamin Thomas)
+    * Adding bytes_used and number_of_photos to albums
+    * Added the --long option to picasa-list
+    * Added the --human option to picasa-list
+    * Switched to Dist::Zilla for handling distribution
 
 0.06    November 23, 2009
 

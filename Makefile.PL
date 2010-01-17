@@ -1,25 +1,45 @@
-use inc::Module::Install;
 
-name     'Net-Google-PicasaWeb';
-all_from 'lib/Net/Google/PicasaWeb.pm';
-author   'Andrew Sterling Hanenkamp <hanenkamp@cpan.org>';
+use strict;
+use warnings;
 
-build_requires 'Test::More';
-build_requires 'Test::Mock::LWP';
 
-requires 'IO::Prompt';
-requires 'LWP::UserAgent';
-requires 'Moose';
-requires 'MooseX::Role::Matcher';
-requires 'Net::Google::AuthSub';
-requires 'URI';
-requires 'XML::Twig'             => '3.30'; # added fields method
 
-install_script 'script/picasa';
-install_script 'script/picasa-get';
-install_script 'script/picasa-list';
+use ExtUtils::MakeMaker 6.11;
 
-auto_install;
 
-WriteAll;
+
+my %WriteMakefileArgs = (
+                       'test' => {
+                                   'TESTS' => 't/*.t'
+                                 },
+                       'NAME' => 'Net::Google::PicasaWeb',
+                       'DISTNAME' => 'Net-Google-PicasaWeb',
+                       'AUTHOR' => 'Andrew Sterling Hanenkamp <hanenkamp@cpan.org>',
+                       'ABSTRACT' => 'use Google\'s Picasa Web API',
+                       'EXE_FILES' => [
+                                        'script/picasa-list',
+                                        'script/picasa',
+                                        'script/picasa-get'
+                                      ],
+                       'VERSION' => '0.07',
+                       'LICENSE' => 'perl',
+                       'PREREQ_PM' => {
+                                        'URI' => '0',
+                                        'XML::Twig' => '3.30',
+                                        'ExtUtils::MakeMaker' => '6.11',
+                                        'Net::Google::AuthSub' => '0',
+                                        'LWP::UserAgent' => '0',
+                                        'MooseX::Role::Matcher' => '0',
+                                        'Moose' => '0',
+                                        'IO::Prompt' => '0'
+                                      }
+                     );
+
+
+delete $WriteMakefileArgs{LICENSE}
+  unless eval { ExtUtils::MakeMaker->VERSION(6.31) };
+
+WriteMakefile(%WriteMakefileArgs);
+
+
 

@@ -2,6 +2,7 @@ use strict;
 use warnings;
 
 package Net::Google::PicasaWeb::Base;
+our $VERSION = '0.07';
 use Moose;
 
 with 'MooseX::Role::Matcher' => { default_match => 'id' };
@@ -9,6 +10,10 @@ with 'MooseX::Role::Matcher' => { default_match => 'id' };
 =head1 NAME
 
 Net::Google::PicasaWeb::Base - base class
+
+=head1 VERSION
+
+version 0.07
 
 =head1 DESCRIPTION
 

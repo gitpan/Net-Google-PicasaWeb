@@ -2,12 +2,11 @@ use warnings;
 use strict;
 
 package Net::Google::PicasaWeb;
+our $VERSION = '0.07';
 use Moose;
 
 use Carp;
-use HTTP::Message;
 use HTTP::Request::Common;
-use HTTP::Request;
 use LWP::UserAgent;
 use Net::Google::AuthSub;
 use URI;
@@ -23,13 +22,7 @@ Net::Google::PicasaWeb - use Google's Picasa Web API
 
 =head1 VERSION
 
-Version 0.06_01
-
-B<DEVELOPMENT VERSION:> The update features of this API are EXPERIMENTAL. They may change in a future release. They are not well-tested (there are not even unit tests as of this writing).
-
-=cut
-
-our $VERSION = '0.06_01';
+version 0.07
 
 =head1 SYNOPSIS
 
@@ -189,83 +182,6 @@ sub get_album {
     );
 }
 
-=head2 add_album
-
-http://code.google.com/intl/en-US/apis/picasaweb/developers_guide_protocol.html#AddAlbums
-
-  my $album = $service->add_album(
-      title             => 'Trip to Italy',
-      summary           => 'This was the recent trip I took to Italy',
-      location          => 'Italy',
-      access            => 'public',
-      commentingEnabled => 'true',
-      timestamp         => '1152255600000',
-      keywords          => ('italy', 'vacation'),
-  );
-
-=over
-
-=item title
-
-Title of the new album.
-
-=back
-
-Default values will be applied by PicasaWeb on server side.
-
-=cut
-
-sub add_album {
-    my ($self, %params) = @_;
-
-    my $twig = XML::Twig->new(
-        pretty_print => 'indented',
-        empty_tags   => 'expand',
-    );
-
-    my $root = XML::Twig::Elt->new(
-        'entry' => {
-            'xmlns'        => 'http://www.w3.org/2005/Atom',
-            'xmlns:media'  => 'http://search.yahoo.com/mrss/',
-            'xmlns:gphoto' => 'http://schemas.google.com/photos/2007',
-        }
-    );
-
-    $twig->set_root($root);
-
-    $root->insert_new_elt('last_child', title => {type => 'text'}, $params{title});
-    $root->insert_new_elt('last_child', summary => {type => 'text'}, $params{summary});
-
-    foreach my $gphoto ('location', 'access', 'commentingEnabled', 'timestamp') {
-        $root->insert_new_elt('last_child', 'gphoto:' . $gphoto, $params{$gphoto});
-    }
-
-    my $group = $root->insert_new_elt('last_child', 'media:group');
-
-    if (defined $params{keywords}) {
-        $group->insert_new_elt('last_child', 'media:keywords', join(', ', $params{keywords}));
-    }
-
-    $root->insert_new_elt('last_child',
-        'category' => {
-            'scheme' => 'http://schemas.google.com/g/2005#kind',
-            'term'   => 'http://schemas.google.com/photos/2007#album'
-        }
-    );
-
-    my $uri = 'http://picasaweb.google.com/data/feed/api/user/default';
-    my $response = $self->request('POST', $uri, $twig->sprint(), 'application/atom+xml');
-
-    $twig->purge();
-
-    if ($response->is_error) {
-        croak $response->status_line;
-    }
-
-    my @entries = $self->_parse_feed('Net::Google::PicasaWeb::Album', 'entry', $response->content);
-    return scalar $entries[0];
-}
-
 =head2 list_tags
 
 Returns a list of tags that have been used by the logged user or the user named in the C<user_id> parameter.
@@ -287,6 +203,7 @@ This method also takes all the L</STANDARD LIST OPTIONS>.
 # This is a tiny cheat that allows us to reuse the list_entries method
 {
     package Net::Google::PicasaWeb::Tag;
+our $VERSION = '0.07';
 
     sub from_feed {
         my ($class, $service, $entry) = @_;
@@ -472,92 +389,6 @@ sub get_media_entry {
 *get_photo = *get_media_entry;
 *get_video = *get_media_entry;
 
-=head2 add_media_entry
-
-=head2 add_photo
-
-=head2 add_video
-
-  my $media_entry = $service->add_media_entry(
-      user_id   => $user_id,
-      album_id  => $album_id,
-      title     => $title,
-      summary   => $summary,
-      keywords  => ($keyword, $keyword, ),
-      data      => $binary,
-      data_type => $content_type,
-  );
-
-=cut
-
-sub add_media_entry {
-    my ($self, %params) = @_;
-
-    my $user_id  = $params{user_id} || 'default';
-    my $album_id = $params{album_id} || 'default';
-    my $data_type = $params{data_type} || 'image/jpeg';
-
-    # Prepare Atom
-    my $twig = XML::Twig->new(
-        pretty_print => 'indented',
-        empty_tags   => 'expand',
-    );
-
-    my $root = XML::Twig::Elt->new(
-        'entry' => {
-            'xmlns'        => 'http://www.w3.org/2005/Atom',
-        }
-    );
-
-    $twig->set_root($root);
-
-    $root->insert_new_elt('last_child', title => {type => 'text'}, $params{title});
-    $root->insert_new_elt('last_child', summary => {type => 'text'}, $params{summary});
-
-    # TODO:
-    #   <media:group>
-    #       <media:keywords>
-    #           keyword, keyword, ...
-    #       </media:keywords>
-    #   </media:group>
-
-    $root->insert_new_elt('last_child',
-        'category' => {
-            'scheme' => 'http://schemas.google.com/g/2005#kind',
-            'term'   => 'http://schemas.google.com/photos/2007#photo'
-        }
-    );
-
-    # Prepare REST message
-    my $uri = "http://picasaweb.google.com/data/feed/api/user/$user_id/albumid/$album_id";
-    my $request = HTTP::Request->new(POST => $uri, [$self->authenticator->auth_params,
-                                                    'Content-Type' => 'multipart/related',
-                                                    'MIME-version' => '1.0']);
-    $request->add_part(HTTP::Message->new(['Content-Type' => 'application/atom+xml'], $twig->sprint()));
-    $request->add_part(HTTP::Message->new(['Content-Type' => $data_type], $params{data}));
-
-    # Drain cache (workaround)
-    $request->_content($request);
-
-    # Clear unneeded Twig
-    $twig->purge();
-
-    my $response = $self->user_agent->request($request);
-
-    $request->clear();
-
-    if ($response->is_error) {
-        croak $response->status_line;
-    }
-
-    # FIXME: Should be proper parser here
-    my @entries = $self->_parse_feed('Net::Google::PicasaWeb::MediaEntry', 'entry', $response->content);
-    return scalar $entries[0];
-}
-
-*add_photo = *add_media_entry;
-*add_video = *add_media_entry;
-
 =head1 HELPERS
 
 These helper methods are used to do some of the work.
@@ -574,9 +405,8 @@ sub request {
     my $self    = shift;
     my $method  = shift;
     my $path    = shift;
-    my $query   = ($method eq 'GET') ? shift : undef;
+    my $query   = $method eq 'GET' ? shift : undef;
     my $content = shift;
-    my $type    = (($method eq 'POST') or ($method eq 'PUT')) ? shift : undef;
 
     my @headers = $self->authenticator->auth_params;
 
@@ -586,8 +416,8 @@ sub request {
     {
         local $_ = $method;
         if    (/GET/)    { $request = GET   ($url, @headers) }
-        elsif (/POST/)   { $request = POST  ($url, @headers, Content => $content, Content_Type => $type) }
-        elsif (/PUT/)    { $request = PUT   ($url, @headers, Content => $content, Content_Type => $type) }
+        elsif (/POST/)   { $request = POST  ($url, @headers, Content => $content) }
+        elsif (/PUT/)    { $request = PUT   ($url, @headers, Content => $content) }
         elsif (/DELETE/) { $request = DELETE($url, @headers) }
         else             { confess "unknown method [$_]" }
     }
