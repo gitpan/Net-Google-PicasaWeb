@@ -2,7 +2,7 @@ use strict;
 use warnings;
 
 package Net::Google::PicasaWeb::Comment;
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 use Moose;
 
 extends 'Net::Google::PicasaWeb::Feed';
@@ -13,7 +13,7 @@ Net::Google::PicasaWeb::Comment - represents a single Picasa Web comment
 
 =head1 VERSION
 
-version 0.07
+version 0.08
 
 =head1 SYNOPSIS
 

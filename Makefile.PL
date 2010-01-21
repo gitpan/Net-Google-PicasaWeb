@@ -21,14 +21,15 @@ my %WriteMakefileArgs = (
                                         'script/picasa',
                                         'script/picasa-get'
                                       ],
-                       'VERSION' => '0.07',
+                       'VERSION' => '0.08',
                        'LICENSE' => 'perl',
                        'PREREQ_PM' => {
                                         'URI' => '0',
                                         'XML::Twig' => '3.30',
+                                        'Test::Mock::LWP' => '0',
                                         'ExtUtils::MakeMaker' => '6.11',
-                                        'Net::Google::AuthSub' => '0',
                                         'LWP::UserAgent' => '0',
+                                        'Net::Google::AuthSub' => '0',
                                         'MooseX::Role::Matcher' => '0',
                                         'Moose' => '0',
                                         'IO::Prompt' => '0'

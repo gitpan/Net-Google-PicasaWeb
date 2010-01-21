@@ -2,7 +2,7 @@ use strict;
 use warnings;
 
 package Net::Google::PicasaWeb::Feed;
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 use Moose;
 
 extends 'Net::Google::PicasaWeb::Base';
@@ -13,7 +13,7 @@ Net::Google::PicasaWeb::Feed - base class for feed entries
 
 =head1 VERSION
 
-version 0.07
+version 0.08
 
 =head1 DESCRIPTION
 
