@@ -2,7 +2,7 @@ use warnings;
 use strict;
 
 package Net::Google::PicasaWeb;
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 use Moose;
 
 use Carp;
@@ -22,7 +22,7 @@ Net::Google::PicasaWeb - use Google's Picasa Web API
 
 =head1 VERSION
 
-version 0.08
+version 0.09
 
 =head1 SYNOPSIS
 
@@ -69,9 +69,10 @@ has authenticator => (
     is => 'rw',
     isa => 'Net::Google::AuthSub',
     default => sub {
+        my $version = $Net::Google::PicasaWeb::VERSION || 'TEST';
         Net::Google::AuthSub->new(
             service => 'lh2', # Picasa Web Albums
-            source  => 'Net::Google::PicasaWeb-'.$VERSION,
+            source  => 'Net::Google::PicasaWeb-'.$version,
         );
     },
 );
@@ -203,7 +204,7 @@ This method also takes all the L</STANDARD LIST OPTIONS>.
 # This is a tiny cheat that allows us to reuse the list_entries method
 {
     package Net::Google::PicasaWeb::Tag;
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
     sub from_feed {
         my ($class, $service, $entry) = @_;
@@ -471,6 +472,8 @@ sub _parse_feed {
         map_xmlns => {
             'http://search.yahoo.com/mrss/'         => 'media',
             'http://schemas.google.com/photos/2007' => 'gphoto',
+            'http://www.georss.org/georss'          => 'georss',
+            'http://www.opengis.net/gml'            => 'gml',
         },
         twig_handlers => {
             $element => sub {

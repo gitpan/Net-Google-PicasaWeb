@@ -2,7 +2,7 @@ use strict;
 use warnings;
 
 package Net::Google::PicasaWeb::Media;
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 use Moose;
 
 extends 'Net::Google::PicasaWeb::Base';
@@ -15,7 +15,7 @@ Net::Google::PicasaWeb::Media - hold information about a photo or video
 
 =head1 VERSION
 
-version 0.08
+version 0.09
 
 =head1 SYNOPSIS
 
@@ -49,6 +49,8 @@ version 0.08
 =head1 DESCRIPTION
 
 This is where you will find information about the photos, videos, and thumbnails themselves. You can get information about them with this object, such as the URL that can be used to download the media file. This object (and its children) also provide some features to fetching this information.
+
+This class extends L<Net::Google::PicasaWeb::Base>.
 
 =head1 ATTRIBUTE
 
@@ -126,8 +128,9 @@ sub from_feed {
             mime_type => $content->att('type'),
             medium    => $content->att('medium'),
 
-            ($content->att('height') ? (height => $content->att('height')) : ()),
-            ($content->att('width')  ? (width  => $content->att('width'))  : ()),
+            ($content->att('height')   ? (height => $content->att('height'))   : ()),
+            ($content->att('width')    ? (width  => $content->att('width'))    : ()),
+            ($content->att('fileSize') ? (size   => $content->att('fileSize')) : ()),
         )
     );
     $self->thumbnails(
@@ -165,7 +168,7 @@ sub _fetch {
 }
 
 package Net::Google::PicasaWeb::Media::Content;
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 use Moose;
 
 =head1 MEDIA CONTENT
@@ -254,6 +257,17 @@ has height => (
     isa => 'Int',
 );
 
+=head3 size
+
+The file size of the photo in bytes.
+
+=cut
+
+has size => (
+    is => 'rw',
+    isa => 'Int',
+);
+
 =head1 METHODS
 
 =head2 fetch
@@ -280,7 +294,7 @@ sub fetch {
 }
 
 package Net::Google::PicasaWeb::Media::Thumbnail;
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 use Moose;
 
 =head1 THUMBNAILS

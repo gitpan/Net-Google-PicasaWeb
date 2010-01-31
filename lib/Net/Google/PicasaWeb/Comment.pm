@@ -2,7 +2,7 @@ use strict;
 use warnings;
 
 package Net::Google::PicasaWeb::Comment;
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 use Moose;
 
 extends 'Net::Google::PicasaWeb::Feed';
@@ -13,7 +13,7 @@ Net::Google::PicasaWeb::Comment - represents a single Picasa Web comment
 
 =head1 VERSION
 
-version 0.08
+version 0.09
 
 =head1 SYNOPSIS
 
@@ -25,13 +25,17 @@ version 0.08
 
 =head1 DESCRIPTION
 
-Represents an individual Picasa Web comment.
+Represents an individual Picasa Web comment. This class extends L<Net::Google::PicasaWeb::Feed>.
 
 =head1 ATTRIBUTES
 
+=head2 url
+
+The URL used to get information about the object. See L<Net::Google::PicasaWeb::Feed/url>.
+
 =head2 title
 
-This is the name of the person that made the comment.
+This is the name of the person that made the comment. See L<Net::Google::PicasaWeb:::Feed/title>.
 
 =head2 content
 
@@ -46,11 +50,11 @@ has content => (
 
 =head2 author_name
 
-This is the author of the comment.
+This is the author of the comment. See L<Net::Google::PicasaWeb::Feed/author_name>.
 
 =head2 author_uri
 
-This is the URL to get to the author's public albums on Picasa Web.
+This is the URL to get to the author's public albums on Picasa Web. See L<Net::Google::PicasaWeb::Feed/author_uri>.
 
 =cut
 
@@ -61,6 +65,10 @@ override from_feed => sub {
     $self->content($entry->field('content'));
     return $self;
 };
+
+=head2 entry_id
+
+This is the unique ID for the comment. See L<Net::Google::PicasaWeb::Feed/entry_id>.
 
 =head1 AUTHOR
 

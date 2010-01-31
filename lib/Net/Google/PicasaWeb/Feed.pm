@@ -2,7 +2,7 @@ use strict;
 use warnings;
 
 package Net::Google::PicasaWeb::Feed;
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 use Moose;
 
 extends 'Net::Google::PicasaWeb::Base';
@@ -13,11 +13,19 @@ Net::Google::PicasaWeb::Feed - base class for feed entries
 
 =head1 VERSION
 
-version 0.08
+version 0.09
 
 =head1 DESCRIPTION
 
-Provides some common functions for feed-based objects.
+Provides some common functions for feed-based objects. This class extends L<Net::Google::PicasaWeb::Base>.
+
+=head1 ATTRIBUTES
+
+All feed-based objects have these attributes. However, they may not all be used.
+
+=head2 url
+
+The URL used to get information about the object.
 
 =cut
 
@@ -26,34 +34,92 @@ has url => (
     isa => 'Str',
 );
 
+=head2 title
+
+The title of the object.
+
+=cut
+
 has title => (
     is => 'rw',
     isa => 'Str',
 );
+
+=head2 summary
+
+The summary of the object. This is the long description of the album or caption of the photo.
+
+=cut
 
 has summary => (
     is => 'rw',
     isa => 'Str',
 );
 
+=head2 author_name
+
+This is the author/owner of the object.
+
+=cut
+
 has author_name => (
     is => 'rw',
     isa => 'Str',
 );
+
+=head2 author_uri
+
+This is the URL to get the author's public albums on Picasa Web.
+
+=cut
 
 has author_uri => (
     is => 'rw',
     isa => 'Str',
 );
 
+=head2 entry_id
+
+This is the ID that may be used with the object type to uniquely identify (and lookup) this object.
+
+=cut
+
 has entry_id => (
     is => 'rw',
     isa => 'Str',
 );
 
+=head2 user_id
+
+This is the account ID of the user.
+
+=cut
+
 has user_id => (
     is => 'rw',
     isa => 'Str',
+);
+
+=head2 latitude
+
+This is the geo-coded latitude of the object.
+
+=cut
+
+has latitude => (
+    is => 'rw',
+    isa => 'Num',
+);
+
+=head2 longitude
+
+This is the geo-coded longitude of the object.
+
+=cut
+
+has longitude => (
+    is => 'rw',
+    isa => 'Num',
 );
 
 =head1 METHODS
@@ -91,6 +157,19 @@ sub from_feed {
         $params{user_id}   ||= $author->field('gphoto:user')
             if $author->has_child('gphoto:user');
     }
+
+    if (my $georss = $entry->first_child('georss:where')) {
+        if (my $point = $georss->first_child('gml:Point')) {      
+            if (my $pos = $point->field('gml:pos') ) {
+                
+                $pos =~ s/^\s+//;
+                my ($lat, $lon) = split /\s+/, $pos, 2;
+
+                $params{latitude}  = $lat;
+                $params{longitude} = $lon;
+            }
+        }
+    } 
 
     return $class->new(\%params);
 }
