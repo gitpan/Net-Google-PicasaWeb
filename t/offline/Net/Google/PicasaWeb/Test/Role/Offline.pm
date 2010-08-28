@@ -1,5 +1,4 @@
 package Net::Google::PicasaWeb::Test::Role::Offline;
-our $VERSION = '0.09';
 use Test::Able::Role;
 
 use Test::MockObject;

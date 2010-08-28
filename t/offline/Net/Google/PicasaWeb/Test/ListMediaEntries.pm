@@ -1,5 +1,4 @@
 package Net::Google::PicasaWeb::Test::ListMediaEntries;
-our $VERSION = '0.09';
 use Test::Able;
 use Test::More;
 

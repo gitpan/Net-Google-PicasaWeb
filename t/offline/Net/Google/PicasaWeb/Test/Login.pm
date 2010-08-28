@@ -1,5 +1,4 @@
 package Net::Google::PicasaWeb::Test::Login;
-our $VERSION = '0.09';
 use Test::Able;
 use Test::More;
 

@@ -2,7 +2,9 @@ use strict;
 use warnings;
 
 package Net::Google::PicasaWeb::Media;
-our $VERSION = '0.09';
+BEGIN {
+  $Net::Google::PicasaWeb::Media::VERSION = '0.10';
+}
 use Moose;
 
 extends 'Net::Google::PicasaWeb::Base';
@@ -15,7 +17,7 @@ Net::Google::PicasaWeb::Media - hold information about a photo or video
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 SYNOPSIS
 
@@ -168,7 +170,9 @@ sub _fetch {
 }
 
 package Net::Google::PicasaWeb::Media::Content;
-our $VERSION = '0.09';
+BEGIN {
+  $Net::Google::PicasaWeb::Media::Content::VERSION = '0.10';
+}
 use Moose;
 
 =head1 MEDIA CONTENT
@@ -294,7 +298,9 @@ sub fetch {
 }
 
 package Net::Google::PicasaWeb::Media::Thumbnail;
-our $VERSION = '0.09';
+BEGIN {
+  $Net::Google::PicasaWeb::Media::Thumbnail::VERSION = '0.10';
+}
 use Moose;
 
 =head1 THUMBNAILS

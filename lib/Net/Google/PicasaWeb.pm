@@ -2,7 +2,9 @@ use warnings;
 use strict;
 
 package Net::Google::PicasaWeb;
-our $VERSION = '0.09';
+BEGIN {
+  $Net::Google::PicasaWeb::VERSION = '0.10';
+}
 use Moose;
 
 use Carp;
@@ -22,7 +24,7 @@ Net::Google::PicasaWeb - use Google's Picasa Web API
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 SYNOPSIS
 
@@ -204,7 +206,9 @@ This method also takes all the L</STANDARD LIST OPTIONS>.
 # This is a tiny cheat that allows us to reuse the list_entries method
 {
     package Net::Google::PicasaWeb::Tag;
-our $VERSION = '0.09';
+BEGIN {
+  $Net::Google::PicasaWeb::Tag::VERSION = '0.10';
+}
 
     sub from_feed {
         my ($class, $service, $entry) = @_;
@@ -455,6 +459,11 @@ sub get_entry {
 sub _fetch_feed {
     my ($self, $path, %params) = @_;
 
+    # Allow thumbsize to be passed as an array
+    if (defined $params{thumbsize} and ref $params{thumbsize}) {
+        $params{thumbsize} = join ',', @{ $params{thumbsize} };
+    }
+
     my $response = $self->request( GET => $path => [ %params ] );
 
     if ($response->is_error) {
@@ -516,7 +525,13 @@ This is the L<http://code.google.com/apis/picasaweb/reference.html#Visibility|vi
 
 This option is only used when listing albums and photos or videos.
 
-By passing a single scalar or an array reference of scalars, you may select the size or sizes of thumbnails attached to the items returned. Please see the L<http://code.google.com/apis/picasaweb/reference.html#Parameters|parameters> documentation for a description of valid values.
+By passing a single scalar or an array reference of scalars, e.g.,
+
+  thumbsize => '72c',
+  thumbsize => [ qw( 104c 640u d ) ],
+  thumbsize => '1440u,1280u',
+
+You may select the size or sizes of thumbnails attached to the items returned. Please see the L<http://code.google.com/apis/picasaweb/reference.html#Parameters|parameters> documentation for a description of valid values.
 
 =item imgmax
 

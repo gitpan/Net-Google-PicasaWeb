@@ -2,7 +2,9 @@ use strict;
 use warnings;
 
 package Net::Google::PicasaWeb::Album;
-our $VERSION = '0.09';
+BEGIN {
+  $Net::Google::PicasaWeb::Album::VERSION = '0.10';
+}
 use Moose;
 
 extends 'Net::Google::PicasaWeb::MediaFeed';
@@ -15,7 +17,7 @@ Net::Google::PicasaWeb::Album - represents a single Picasa Web photo album
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 SYNOPSIS
 

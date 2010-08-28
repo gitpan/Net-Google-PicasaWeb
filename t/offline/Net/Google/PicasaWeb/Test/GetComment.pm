@@ -1,5 +1,4 @@
 package Net::Google::PicasaWeb::Test::GetComment;
-our $VERSION = '0.09';
 use Test::Able;
 use Test::More;
 

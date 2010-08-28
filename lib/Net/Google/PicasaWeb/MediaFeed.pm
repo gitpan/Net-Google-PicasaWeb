@@ -2,7 +2,9 @@ use strict;
 use warnings;
 
 package Net::Google::PicasaWeb::MediaFeed;
-our $VERSION = '0.09';
+BEGIN {
+  $Net::Google::PicasaWeb::MediaFeed::VERSION = '0.10';
+}
 use Moose;
 
 extends 'Net::Google::PicasaWeb::Feed';
@@ -13,7 +15,7 @@ Net::Google::PicasaWeb::MediaFeed - base class for media feed entries
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 DESCRIPTION
 

@@ -2,7 +2,9 @@ use strict;
 use warnings;
 
 package Net::Google::PicasaWeb::MediaEntry;
-our $VERSION = '0.09';
+BEGIN {
+  $Net::Google::PicasaWeb::MediaEntry::VERSION = '0.10';
+}
 use Moose;
 
 extends 'Net::Google::PicasaWeb::MediaFeed';
@@ -13,7 +15,7 @@ Net::Google::PicasaWeb::MediaEntry - represents a single Picasa Web photo or vid
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 SYNOPSIS
 

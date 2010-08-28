@@ -1,7 +1,7 @@
 
 
-This archive contains the distribution Net-Google-PicasaWeb, version
-0.09:
+This archive contains the distribution Net-Google-PicasaWeb,
+version 0.10:
 
   use Google's Picasa Web API
 
@@ -9,4 +9,5 @@ This software is copyright (c) 2010 by Andrew Sterling Hanenkamp.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
+
 

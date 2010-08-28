@@ -2,7 +2,9 @@ use strict;
 use warnings;
 
 package Net::Google::PicasaWeb::Base;
-our $VERSION = '0.09';
+BEGIN {
+  $Net::Google::PicasaWeb::Base::VERSION = '0.10';
+}
 use Moose;
 
 with 'MooseX::Role::Matcher' => { default_match => 'id' };
@@ -13,7 +15,7 @@ Net::Google::PicasaWeb::Base - base class
 
 =head1 VERSION
 
-version 0.09
+version 0.10
 
 =head1 DESCRIPTION
 
