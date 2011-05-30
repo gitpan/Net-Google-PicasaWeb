@@ -1,11 +1,10 @@
-use warnings;
-use strict;
-
 package Net::Google::PicasaWeb;
 BEGIN {
-  $Net::Google::PicasaWeb::VERSION = '0.10';
+  $Net::Google::PicasaWeb::VERSION = '0.11';
 }
 use Moose;
+
+# ABSTRACT: use Google's Picasa Web API
 
 use Carp;
 use HTTP::Request::Common;
@@ -18,13 +17,320 @@ use Net::Google::PicasaWeb::Album;
 use Net::Google::PicasaWeb::Comment;
 use Net::Google::PicasaWeb::MediaEntry;
 
+
+has authenticator => (
+    is          => 'rw',
+    isa         => 'Net::Google::AuthSub',
+    required    => 1,
+    lazy_build  => 1,
+);
+
+sub _build_authenticator {
+    my $version = $Net::Google::PicasaWeb::VERSION || 'TEST';
+    Net::Google::AuthSub->new(
+        service => 'lh2', # Picasa Web Albums
+        source  => 'Net::Google::PicasaWeb-'.$version,
+    );
+}
+
+
+has user_agent => (
+    is          => 'rw',
+    isa         => 'LWP::UserAgent',
+    required    => 1,
+    lazy_build  => 1,
+);
+
+sub _build_user_agent {
+    LWP::UserAgent->new(
+        cookie_jar => {},
+    );
+}
+
+
+has service_base_url => (
+    is          => 'rw',
+    isa         => 'Str',
+    required    => 1,
+    default     => 'http://picasaweb.google.com/data/feed/api/',
+);
+
+
+has xml_namespaces => (
+    is          => 'rw',
+    isa         => 'HashRef[Str]',
+    required    => 1,
+    lazy_build  => 1,
+);
+
+sub _build_xml_namespaces {
+    {
+        'http://search.yahoo.com/mrss/'         => 'media',
+        'http://schemas.google.com/photos/2007' => 'gphoto',
+        'http://www.georss.org/georss'          => 'georss',
+        'http://www.opengis.net/gml'            => 'gml',
+    }
+}
+
+
+sub login {
+    my $self     = shift;
+    my $response = $self->authenticator->login(@_);
+
+    croak "error logging in: $@"                 unless defined $response;
+    croak "error logging in: ", $response->error unless $response->is_success;
+
+    return 1;
+}
+
+
+sub list_albums {
+    my ($self, %params) = @_;
+    $params{kind} = 'album';
+
+    my $user_id = delete $params{user_id} || 'default';
+    return $self->list_entries(
+        'Net::Google::PicasaWeb::Album',
+        [ 'user', $user_id ],
+        %params
+    );
+}
+
+
+sub get_album {
+    my ($self, %params) = @_;
+
+    croak "missing album_id parameter" unless defined $params{album_id};
+
+    my $user_id  = delete $params{user_id} || 'default';
+    my $album_id = delete $params{album_id};
+
+    return $self->get_entry(
+        'Net::Google::PicasaWeb::Album',
+        [ 'user', $user_id, 'albumid', $album_id ],
+        %params
+    );
+}
+
+
+# This is a tiny cheat that allows us to reuse the list_entries method
+{
+    package Net::Google::PicasaWeb::Tag;
+BEGIN {
+  $Net::Google::PicasaWeb::Tag::VERSION = '0.11';
+}
+
+    sub from_feed {
+        my ($class, $service, $entry) = @_;
+        return $entry->field('title');
+    }
+}
+
+sub list_tags {
+    my ($self, %params) = @_;
+    $params{kind} = 'tag';
+
+    my $user_id = delete $params{user_id} || 'default';
+    return $self->list_entries(
+        'Net::Google::PicasaWeb::Tag',
+        [ 'user', $user_id ],
+        %params
+    );
+}
+
+
+sub list_comments {
+    my ($self, %params) = @_;
+    $params{kind} = 'comment';
+
+    my $user_id = delete $params{user_id} || 'default';
+    return $self->list_entries(
+        'Net::Google::PicasaWeb::Comment',
+        [ 'user', $user_id ],
+        %params
+    );
+}
+
+sub _feed_url {
+    my ($self, $path, $query) = @_;
+
+    $path = join '/', @$path if ref $path;
+    $path = $self->service_base_url . $path
+        unless $path =~ m{^https?:};
+
+    my $uri = URI->new($path);
+    $uri->query_form($query) if $query;
+
+    return $uri;
+}
+
+
+sub get_comment {
+    my ($self, %params) = @_;
+
+    croak "missing album_id parameter"   unless defined $params{album_id};
+    croak "missing photo_id parameter"   unless defined $params{photo_id};
+    croak "missing comment_id parameter" unless defined $params{comment_id};
+
+    my $user_id    = delete $params{user_id} || 'default';
+    my $album_id   = delete $params{album_id};
+    my $photo_id   = delete $params{photo_id};
+    my $comment_id = delete $params{comment_id};
+
+    return $self->get_entry(
+        'Net::Google::PicasaWeb::Comment',
+        [
+            user      => $user_id,
+            albumid   => $album_id,
+            photoid   => $photo_id,
+            commentid => $comment_id,
+        ],
+        %params
+    );
+}
+
+
+sub list_media_entries {
+    my ($self, %params) = @_;
+    $params{kind} = 'photo';
+
+    my $user_id  = delete $params{user_id};
+    my $featured = delete $params{featured};
+    
+    croak "user_id may not be combined with featured"
+        if $user_id and $featured;
+
+    my $path;
+    $path   = [ 'user', $user_id ] if $user_id;
+    $path   = 'featured'           if $featured;
+    $path ||= 'all';
+
+    return $self->list_entries(
+        'Net::Google::PicasaWeb::MediaEntry',
+        $path,
+        %params
+    );
+}
+
+sub list_photos { shift->list_media_entries(@_) }
+sub list_videos { shift->list_media_entries(@_) }
+
+
+sub get_media_entry {
+    my ($self, %params) = @_;
+
+    croak "missing album_id parameter" unless defined $params{album_id};
+    croak "missing photo_id parameter" unless defined $params{photo_id};
+
+    my $user_id  = delete $params{user_id} || 'default';
+    my $album_id = delete $params{album_id};
+    my $photo_id = delete $params{photo_id};
+
+    return $self->get_entry(
+        'Net::Google::PicasaWeb::MediaEntry',
+        [
+            user    => $user_id,
+            albumid => $album_id,
+            photoid => $photo_id,
+        ],
+        %params
+    );
+}
+
+sub get_photo { shift->get_media_entry(@_) }
+sub get_video { shift->get_media_entry(@_) }
+
+
+sub request {
+    my $self    = shift;
+    my $method  = shift;
+    my $path    = shift;
+    my $query   = $method eq 'GET' ? shift : undef;
+    my $content = shift;
+
+    my @headers = $self->authenticator->auth_params;
+
+    my $url = $self->_feed_url($path, $query);
+    
+    my $request;
+    {
+        local $_ = $method;
+        if    (/GET/)    { $request = GET   ($url, @headers) }
+        elsif (/POST/)   { $request = POST  ($url, @headers, Content => $content) }
+        elsif (/PUT/)    { $request = PUT   ($url, @headers, Content => $content) }
+        elsif (/DELETE/) { $request = DELETE($url, @headers) }
+        else             { confess "unknown method [$_]" }
+    }
+
+    return $self->user_agent->request($request);
+}
+
+
+sub get_entry {
+    my ($self, $class, $path, %params) = @_;
+    my $content = $self->_fetch_feed($path, %params);
+    my @entries = $self->_parse_feed($class, 'feed', $content);
+    return scalar $entries[0];
+}
+
+sub _fetch_feed {
+    my ($self, $path, %params) = @_;
+
+    # Allow thumbsize to be passed as an array
+    if (defined $params{thumbsize} and ref $params{thumbsize}) {
+        $params{thumbsize} = join ',', @{ $params{thumbsize} };
+    }
+
+    my $response = $self->request( GET => $path => [ %params ] );
+
+    if ($response->is_error) {
+        croak $response->status_line;
+    }
+
+    return $response->content;
+}
+
+sub _parse_feed {
+    my ($self, $class, $element, $content) = @_;
+
+    my @items;
+    my $feed = XML::Twig->new( 
+        map_xmlns => $self->xml_namespaces,
+        twig_handlers => {
+            $element => sub {
+                push @items, $class->from_feed($self, $_);
+            },
+        },
+    );
+    $feed->parse($content);
+
+    return @items;
+}
+
+
+sub list_entries {
+    my ($self, $class, $path, %params) = @_;
+
+    my $content = $self->_fetch_feed($path, %params);
+    return $self->_parse_feed($class, 'entry', $content);
+}
+
+
+
+__PACKAGE__->meta->make_immutable;
+
+1;
+
+__END__
+=pod
+
 =head1 NAME
 
 Net::Google::PicasaWeb - use Google's Picasa Web API
 
 =head1 VERSION
 
-version 0.10
+version 0.11
 
 =head1 SYNOPSIS
 
@@ -65,35 +371,26 @@ This module uses L<Moose> to handle attributes and such. These attributes are re
 
 This is an L<Net::Google::AuthSub> object used to handle authentication. The default is an instance set to use a service of "lh2" and a source of "Net::Google::PicasaWeb-VERSION".
 
-=cut
-
-has authenticator => (
-    is => 'rw',
-    isa => 'Net::Google::AuthSub',
-    default => sub {
-        my $version = $Net::Google::PicasaWeb::VERSION || 'TEST';
-        Net::Google::AuthSub->new(
-            service => 'lh2', # Picasa Web Albums
-            source  => 'Net::Google::PicasaWeb-'.$version,
-        );
-    },
-);
-
 =head2 user_agent
 
 This is an L<LWP::UserAgent> object used to handle web communication. 
 
-=cut
+=head2 service_base_url
 
-has user_agent => (
-    is => 'rw',
-    isa => 'LWP::UserAgent',
-    default => sub {
-        LWP::UserAgent->new(
-            cookie_jar => {},
-        );
-    },
-);
+This is the base URL of the API to contact. This should probably always be C<http://picasaweb.google.com/data/feed/api/> unless Google starts providing alternate URLs or someone has a service providing the same API elsewhere..
+
+=head2 xml_namespaces
+
+When parsing the Google Data API response, these are the namespaces that will be used. By default, this is defined as:
+
+    {
+        'http://search.yahoo.com/mrss/'         => 'media',
+        'http://schemas.google.com/photos/2007' => 'gphoto',
+        'http://www.georss.org/georss'          => 'georss',
+        'http://www.opengis.net/gml'            => 'gml',
+    }
+
+You may add more namespaces to this list, if needed.
 
 =head1 METHODS
 
@@ -115,18 +412,6 @@ It has some additional error handling. This method will return a true value on s
 
 See L<Net::Google::AuthSub>.
 
-=cut
-
-sub login {
-    my $self     = shift;
-    my $response = $self->authenticator->login(@_);
-
-    croak "error logging in: $@"                 unless defined $response;
-    croak "error logging in: ", $response->error unless $response->is_success;
-
-    return 1;
-}
-
 =head2 list_albums
 
   my @albums = $service->list_albums(%params);
@@ -143,20 +428,6 @@ This is the user ID to request a list of albums from. The defaults to "default",
 
 This method also takes the L</STANDARD LIST OPTIONS>.
 
-=cut
-
-sub list_albums {
-    my ($self, %params) = @_;
-    $params{kind} = 'album';
-
-    my $user_id = delete $params{user_id} || 'default';
-    return $self->list_entries(
-        'Net::Google::PicasaWeb::Album',
-        [ 'user', $user_id ],
-        %params
-    );
-}
-
 =head2 get_album
 
   my $album = $service->get_album(
@@ -167,23 +438,6 @@ sub list_albums {
 This will fetch a single album from the Picasa Web Albums using the given C<user_id> and C<album_id>. If C<user_id> is omitted, then "default" will be used instead.
 
 This method returns C<undef> if no such album exists.
-
-=cut
-
-sub get_album {
-    my ($self, %params) = @_;
-
-    croak "missing album_id parameter" unless defined $params{album_id};
-
-    my $user_id  = delete $params{user_id} || 'default';
-    my $album_id = delete $params{album_id};
-
-    return $self->get_entry(
-        'Net::Google::PicasaWeb::Album',
-        [ 'user', $user_id, 'albumid', $album_id ],
-        %params
-    );
-}
 
 =head2 list_tags
 
@@ -201,33 +455,6 @@ The ID of the user to find tags for. Defaults to the current user.
 
 This method also takes all the L</STANDARD LIST OPTIONS>.
 
-=cut
-
-# This is a tiny cheat that allows us to reuse the list_entries method
-{
-    package Net::Google::PicasaWeb::Tag;
-BEGIN {
-  $Net::Google::PicasaWeb::Tag::VERSION = '0.10';
-}
-
-    sub from_feed {
-        my ($class, $service, $entry) = @_;
-        return $entry->field('title');
-    }
-}
-
-sub list_tags {
-    my ($self, %params) = @_;
-    $params{kind} = 'tag';
-
-    my $user_id = delete $params{user_id} || 'default';
-    return $self->list_entries(
-        'Net::Google::PicasaWeb::Tag',
-        [ 'user', $user_id ],
-        %params
-    );
-}
-
 =head2 list_comments
 
 Returns comments on photos for the current account or the account given by the C<user_id> parameter.
@@ -244,33 +471,6 @@ This is the ID of the user to search for comments within. The comments returned 
 
 This method also accepts the L</STANDARD LIST OPTIONS>.
 
-=cut
-
-sub list_comments {
-    my ($self, %params) = @_;
-    $params{kind} = 'comment';
-
-    my $user_id = delete $params{user_id} || 'default';
-    return $self->list_entries(
-        'Net::Google::PicasaWeb::Comment',
-        [ 'user', $user_id ],
-        %params
-    );
-}
-
-sub _feed_url {
-    my ($self, $path, $query) = @_;
-
-    $path = join '/', @$path if ref $path;
-    $path = 'http://picasaweb.google.com/data/feed/api/' . $path
-        unless $path =~ m{^https?:};
-
-    my $uri = URI->new($path);
-    $uri->query_form($query) if $query;
-
-    return $uri;
-}
-
 =head2 get_comment
 
   my $comment = $service->get_comment(
@@ -283,32 +483,6 @@ sub _feed_url {
 Retrieves a single comment from Picasa Web via the given C<user_id>, C<album_id>, C<photo_id>, and C<comment_id>. If C<user_id> is not given, "default" will be used.
 
 Returns C<undef> if no matching comment is found.
-
-=cut
-
-sub get_comment {
-    my ($self, %params) = @_;
-
-    croak "missing album_id parameter"   unless defined $params{album_id};
-    croak "missing photo_id parameter"   unless defined $params{photo_id};
-    croak "missing comment_id parameter" unless defined $params{comment_id};
-
-    my $user_id    = delete $params{user_id} || 'default';
-    my $album_id   = delete $params{album_id};
-    my $photo_id   = delete $params{photo_id};
-    my $comment_id = delete $params{comment_id};
-
-    return $self->get_entry(
-        'Net::Google::PicasaWeb::Comment',
-        [
-            user      => $user_id,
-            albumid   => $album_id,
-            photoid   => $photo_id,
-            commentid => $comment_id,
-        ],
-        %params
-    );
-}
 
 =head2 list_media_entries
 
@@ -336,33 +510,6 @@ This method also accepts the L</STANDARD LIST OPTIONS>.
 
 The L</list_photos> and L</list_videos> methods are synonyms for L</list_media_entries>.
 
-=cut
-
-sub list_media_entries {
-    my ($self, %params) = @_;
-    $params{kind} = 'photo';
-
-    my $user_id  = delete $params{user_id};
-    my $featured = delete $params{featured};
-    
-    croak "user_id may not be combined with featured"
-        if $user_id and $featured;
-
-    my $path;
-    $path   = [ 'user', $user_id ] if $user_id;
-    $path   = 'featured'           if $featured;
-    $path ||= 'all';
-
-    return $self->list_entries(
-        'Net::Google::PicasaWeb::MediaEntry',
-        $path,
-        %params
-    );
-}
-
-*list_photos = *list_media_entries;
-*list_videos = *list_media_entries;
-
 =head2 get_media_entry
 
 =head2 get_photo
@@ -379,32 +526,6 @@ Returns a specific photo or video entry when given a C<user_id>, C<album_id>, an
 
 If no such photo or video can be found, C<undef> will be returned.
 
-=cut
-
-sub get_media_entry {
-    my ($self, %params) = @_;
-
-    croak "missing album_id parameter" unless defined $params{album_id};
-    croak "missing photo_id parameter" unless defined $params{photo_id};
-
-    my $user_id  = delete $params{user_id} || 'default';
-    my $album_id = delete $params{album_id};
-    my $photo_id = delete $params{photo_id};
-
-    return $self->get_entry(
-        'Net::Google::PicasaWeb::MediaEntry',
-        [
-            user    => $user_id,
-            albumid => $album_id,
-            photoid => $photo_id,
-        ],
-        %params
-    );
-}
-
-*get_photo = *get_media_entry;
-*get_video = *get_media_entry;
-
 =head1 HELPERS
 
 These helper methods are used to do some of the work.
@@ -415,101 +536,17 @@ These helper methods are used to do some of the work.
 
 This handles the details of making a request to the Google Picasa Web API.
 
-=cut
-
-sub request {
-    my $self    = shift;
-    my $method  = shift;
-    my $path    = shift;
-    my $query   = $method eq 'GET' ? shift : undef;
-    my $content = shift;
-
-    my @headers = $self->authenticator->auth_params;
-
-    my $url = $self->_feed_url($path, $query);
-    
-    my $request;
-    {
-        local $_ = $method;
-        if    (/GET/)    { $request = GET   ($url, @headers) }
-        elsif (/POST/)   { $request = POST  ($url, @headers, Content => $content) }
-        elsif (/PUT/)    { $request = PUT   ($url, @headers, Content => $content) }
-        elsif (/DELETE/) { $request = DELETE($url, @headers) }
-        else             { confess "unknown method [$_]" }
-    }
-
-    return $self->user_agent->request($request);
-}
-
 =head2 get_entry
 
   my $entry = $service->get_entry($class, $path, %params);
 
 This is used by the C<get_*> methods to pull and initialize a single object from Picasa Web.
 
-=cut
-
-sub get_entry {
-    my ($self, $class, $path, %params) = @_;
-    my $content = $self->_fetch_feed($path, %params);
-    my @entries = $self->_parse_feed($class, 'feed', $content);
-    return scalar $entries[0];
-}
-
-sub _fetch_feed {
-    my ($self, $path, %params) = @_;
-
-    # Allow thumbsize to be passed as an array
-    if (defined $params{thumbsize} and ref $params{thumbsize}) {
-        $params{thumbsize} = join ',', @{ $params{thumbsize} };
-    }
-
-    my $response = $self->request( GET => $path => [ %params ] );
-
-    if ($response->is_error) {
-        croak $response->status_line;
-    }
-
-    return $response->content;
-}
-
-sub _parse_feed {
-    my ($self, $class, $element, $content) = @_;
-
-    my @items;
-    my $feed = XML::Twig->new( 
-        map_xmlns => {
-            'http://search.yahoo.com/mrss/'         => 'media',
-            'http://schemas.google.com/photos/2007' => 'gphoto',
-            'http://www.georss.org/georss'          => 'georss',
-            'http://www.opengis.net/gml'            => 'gml',
-        },
-        twig_handlers => {
-            $element => sub {
-                push @items, $class->from_feed($self, $_);
-            },
-        },
-    );
-    $feed->parse($content);
-
-    return @items;
-}
-
 =head2 list_entries
 
   my @entries = $service->list_entries($class, $path, %params);
 
 This is used by the C<list_*> methods to pull and initialize lists of objects from feeds.
-
-=cut
-
-sub list_entries {
-    my ($self, $class, $path, %params) = @_;
-
-    my $content = $self->_fetch_feed($path, %params);
-    return $self->_parse_feed($class, 'entry', $content);
-}
-
 
 =head1 STANDARD LIST OPTIONS
 
@@ -571,13 +608,9 @@ This may be set to the name of a geo location to search for items within. For ex
 
 =back
 
-=head1 AUTHOR
-
-Andrew Sterling Hanenkamp, C<< <hanenkamp at cpan.org> >>
-
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-net-google-photos at rt.cpan.org>, or through
+Please report any bugs or feature requests to C<bug-Net-Google-PicasaWeb at rt.cpan.org>, or through
 the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Net-Google-PicasaWeb>.  I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
 
@@ -625,13 +658,16 @@ Simon Wistow for L<Net::Google::AuthSub>, which took care of all the authenticat
 
 =back
 
-=head1 COPYRIGHT & LICENSE
+=head1 AUTHOR
 
-Copyright 2008 Andrew Sterling Hanenkamp
+Andrew Sterling Hanenkamp <hanenkamp@cpan.org>
 
-This program is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2011 by Andrew Sterling Hanenkamp.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
 
 =cut
 
-1; # End of Net::Google::PicasaWeb

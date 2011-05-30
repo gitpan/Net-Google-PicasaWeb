@@ -6,6 +6,9 @@ MANIFEST.SKIP
 META.yml
 Makefile.PL
 README
+bin/picasa
+bin/picasa-get
+bin/picasa-list
 dist.ini
 lib/Net/Google/PicasaWeb.pm
 lib/Net/Google/PicasaWeb/Album.pm
@@ -15,9 +18,6 @@ lib/Net/Google/PicasaWeb/Feed.pm
 lib/Net/Google/PicasaWeb/Media.pm
 lib/Net/Google/PicasaWeb/MediaEntry.pm
 lib/Net/Google/PicasaWeb/MediaFeed.pm
-script/picasa
-script/picasa-get
-script/picasa-list
 t/00-load.t
 t/data/get_album.xml
 t/data/get_comment.xml

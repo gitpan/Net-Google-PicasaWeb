@@ -1,15 +1,76 @@
-use strict;
-use warnings;
-
 package Net::Google::PicasaWeb::Album;
 BEGIN {
-  $Net::Google::PicasaWeb::Album::VERSION = '0.10';
+  $Net::Google::PicasaWeb::Album::VERSION = '0.11';
 }
 use Moose;
+
+# ABSTRACT: represents a single Picasa Web photo album
 
 extends 'Net::Google::PicasaWeb::MediaFeed';
 
 use Net::Google::PicasaWeb::Media;
+
+
+has bytes_used => (
+    is          => 'rw',
+    isa         => 'Int',
+    predicate   => 'has_bytes_used',
+);
+
+
+has number_of_photos => (
+    is          => 'rw',
+    isa         => 'Int',
+    predicate   => 'has_number_of_photos',
+);
+
+
+override from_feed => sub {
+    my ($class, $service, $entry) = @_;
+    my $self = $class->super($service, $entry);
+
+    $self->bytes_used($entry->field('gphoto:bytesUsed'))
+        if $entry->field('gphoto:bytesUsed');
+    $self->number_of_photos($entry->field('gphoto:numphotos'))
+        if $entry->field('gphoto:numphotos');;
+
+    return $self;
+};
+
+
+sub list_media_entries {
+    my ($self, %params) = @_;
+    $params{kind} = 'photo';
+
+    return $self->service->list_entries(
+        'Net::Google::PicasaWeb::MediaEntry',
+        $self->url,
+        %params,
+    );
+}
+
+sub list_photos { shift->list_media_entries(@_) }
+sub list_videos { shift->list_media_entries(@_) }
+
+
+sub list_tags {
+    my ($self, %params) = @_;
+    $params{kind} = 'tag';
+
+    my $user_id = delete $params{user_id} || 'default';
+    return $self->service->list_entries(
+        'Net::Google::PicasaWeb::Tag',
+        $self->url,
+        %params
+    );
+}
+
+__PACKAGE__->meta->make_immutable;
+
+1;
+
+__END__
+=pod
 
 =head1 NAME
 
@@ -17,7 +78,7 @@ Net::Google::PicasaWeb::Album - represents a single Picasa Web photo album
 
 =head1 VERSION
 
-version 0.10
+version 0.11
 
 =head1 SYNOPSIS
 
@@ -76,37 +137,11 @@ This is a link to the L<Net::Google::PicasaWeb::Media> object that is used to re
 
 This is the size of the album in bytes.
 
-=cut
-
-has bytes_used => (
-    is => 'rw',
-    isa => 'Int',
-);
-
 =head2 number_of_photos
 
 This is the number of photos in the albums.
 
-=cut
-
-has number_of_photos => (
-    is => 'rw',
-    isa => 'Int',
-);
-
 =head1 METHODS
-
-=cut
-
-override from_feed => sub {
-    my ($class, $service, $entry) = @_;
-    my $self = $class->super($service, $entry);
-
-    $self->bytes_used($entry->field('gphoto:bytesUsed'));
-    $self->number_of_photos($entry->field('gphoto:numphotos'));
-
-    return $self;
-};
 
 =head2 list_media_entries
 
@@ -122,53 +157,22 @@ This method takes the L<Net::Google::PicasaWeb/STANDARD LIST OPTIONS>.
 
 The L</list_photos> and L</list_videos> methods are synonyms for L</list_media_entries>.
 
-=cut
-
-sub list_media_entries {
-    my ($self, %params) = @_;
-    $params{kind} = 'photo';
-
-    return $self->service->list_entries(
-        'Net::Google::PicasaWeb::MediaEntry',
-        $self->url,
-        %params,
-    );
-}
-
-*list_photos = *list_media_entries;
-*list_videos = *list_media_entries;
-
 =head2 list_tags
 
 Lists tags used in the albums.
 
 This method takes the L<Net::Google::PicasaWeb/STANDARD LIST OPTIONS>.
 
-=cut
-
-sub list_tags {
-    my ($self, %params) = @_;
-    $params{kind} = 'tag';
-
-    my $user_id = delete $params{user_id} || 'default';
-    return $self->service->list_entries(
-        'Net::Google::PicasaWeb::Tag',
-        $self->url,
-        %params
-    );
-}
-
 =head1 AUTHOR
 
-Andrew Sterling Hanenkamp, C<< <hanenkamp at cpan.org> >>
+Andrew Sterling Hanenkamp <hanenkamp@cpan.org>
 
-=head1 COPYRIGHT & LICENSE
+=head1 COPYRIGHT AND LICENSE
 
-Copyright 2008 Andrew Sterling Hanenkamp.
+This software is copyright (c) 2011 by Andrew Sterling Hanenkamp.
 
-This program is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
 
 =cut
 
-1;

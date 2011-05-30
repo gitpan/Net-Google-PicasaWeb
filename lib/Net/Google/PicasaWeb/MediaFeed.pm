@@ -1,37 +1,17 @@
-use strict;
-use warnings;
-
 package Net::Google::PicasaWeb::MediaFeed;
 BEGIN {
-  $Net::Google::PicasaWeb::MediaFeed::VERSION = '0.10';
+  $Net::Google::PicasaWeb::MediaFeed::VERSION = '0.11';
 }
 use Moose;
 
 extends 'Net::Google::PicasaWeb::Feed';
 
-=head1 NAME
+# ABSTRACT: base class for media feed entries
 
-Net::Google::PicasaWeb::MediaFeed - base class for media feed entries
-
-=head1 VERSION
-
-version 0.10
-
-=head1 DESCRIPTION
-
-Provides some common functions for the media-based objects (the ones with photo/video links). This class extends L<Net::Google::PicasaWeb::Feed>.
-
-=head1 ATTRIBUTES
-
-=head2 photo
-
-This is the photo for the media feed object. This returns a L<Net::Google::Picasa::Media>.
-
-=cut
 
 has photo => (
-    is => 'rw',
-    isa => 'Net::Google::PicasaWeb::Media',
+    is          => 'rw',
+    isa         => 'Net::Google::PicasaWeb::Media',
 );
 
 override from_feed => sub {
@@ -48,17 +28,41 @@ override from_feed => sub {
     return $self;
 };
 
+__PACKAGE__->meta->make_immutable;
+
+1;
+
+__END__
+=pod
+
+=head1 NAME
+
+Net::Google::PicasaWeb::MediaFeed - base class for media feed entries
+
+=head1 VERSION
+
+version 0.11
+
+=head1 DESCRIPTION
+
+Provides some common functions for the media-based objects (the ones with photo/video links). This class extends L<Net::Google::PicasaWeb::Feed>.
+
+=head1 ATTRIBUTES
+
+=head2 photo
+
+This is the photo for the media feed object. This returns a L<Net::Google::Picasa::Media>.
+
 =head1 AUTHOR
 
-Andrew Sterling Hanenkamp, C<< <hanenkamp at cpan.org> >>
+Andrew Sterling Hanenkamp <hanenkamp@cpan.org>
 
-=head1 COPYRIGHT & LICENSE
+=head1 COPYRIGHT AND LICENSE
 
-Copyright 2008 Andrew Sterling Hanenkamp
+This software is copyright (c) 2011 by Andrew Sterling Hanenkamp.
 
-This program is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
 
 =cut
 
-1;

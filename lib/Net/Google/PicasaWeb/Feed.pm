@@ -1,138 +1,67 @@
-use strict;
-use warnings;
-
 package Net::Google::PicasaWeb::Feed;
 BEGIN {
-  $Net::Google::PicasaWeb::Feed::VERSION = '0.10';
+  $Net::Google::PicasaWeb::Feed::VERSION = '0.11';
 }
 use Moose;
 
+# ABSTRACT: base class for feed entries
+
 extends 'Net::Google::PicasaWeb::Base';
 
-=head1 NAME
-
-Net::Google::PicasaWeb::Feed - base class for feed entries
-
-=head1 VERSION
-
-version 0.10
-
-=head1 DESCRIPTION
-
-Provides some common functions for feed-based objects. This class extends L<Net::Google::PicasaWeb::Base>.
-
-=head1 ATTRIBUTES
-
-All feed-based objects have these attributes. However, they may not all be used.
-
-=head2 url
-
-The URL used to get information about the object.
-
-=cut
 
 has url => (
-    is => 'rw',
-    isa => 'Str',
+    is          => 'rw',
+    isa         => 'Str',
 );
 
-=head2 title
-
-The title of the object.
-
-=cut
 
 has title => (
-    is => 'rw',
-    isa => 'Str',
+    is          => 'rw',
+    isa         => 'Str',
 );
 
-=head2 summary
-
-The summary of the object. This is the long description of the album or caption of the photo.
-
-=cut
 
 has summary => (
-    is => 'rw',
-    isa => 'Str',
+    is          => 'rw',
+    isa         => 'Str',
 );
 
-=head2 author_name
-
-This is the author/owner of the object.
-
-=cut
 
 has author_name => (
-    is => 'rw',
-    isa => 'Str',
+    is          => 'rw',
+    isa         => 'Str',
 );
 
-=head2 author_uri
-
-This is the URL to get the author's public albums on Picasa Web.
-
-=cut
 
 has author_uri => (
-    is => 'rw',
-    isa => 'Str',
+    is          => 'rw',
+    isa         => 'Str',
 );
 
-=head2 entry_id
-
-This is the ID that may be used with the object type to uniquely identify (and lookup) this object.
-
-=cut
 
 has entry_id => (
-    is => 'rw',
-    isa => 'Str',
+    is          => 'rw',
+    isa         => 'Str',
 );
 
-=head2 user_id
-
-This is the account ID of the user.
-
-=cut
 
 has user_id => (
-    is => 'rw',
-    isa => 'Str',
+    is          => 'rw',
+    isa         => 'Str',
 );
 
-=head2 latitude
-
-This is the geo-coded latitude of the object.
-
-=cut
 
 has latitude => (
-    is => 'rw',
-    isa => 'Num',
+    is          => 'rw',
+    isa         => 'Num',
 );
 
-=head2 longitude
-
-This is the geo-coded longitude of the object.
-
-=cut
 
 has longitude => (
-    is => 'rw',
-    isa => 'Num',
+    is          => 'rw',
+    isa         => 'Num',
 );
 
-=head1 METHODS
-
-=head2 from_feed
-
-  my $feed = $class->from_feed($service, $entry);
-
-This method creates the feed object from the service object and an L<XML::Twig::Elt> representing the element returned descring that object.
-
-=cut
 
 sub from_feed {
     my ($class, $service, $entry) = @_;
@@ -176,17 +105,83 @@ sub from_feed {
     return $class->new(\%params);
 }
 
+__PACKAGE__->meta->make_immutable;
+
+1;
+
+__END__
+=pod
+
+=head1 NAME
+
+Net::Google::PicasaWeb::Feed - base class for feed entries
+
+=head1 VERSION
+
+version 0.11
+
+=head1 DESCRIPTION
+
+Provides some common functions for feed-based objects. This class extends L<Net::Google::PicasaWeb::Base>.
+
+=head1 ATTRIBUTES
+
+All feed-based objects have these attributes. However, they may not all be used.
+
+=head2 url
+
+The URL used to get information about the object.
+
+=head2 title
+
+The title of the object.
+
+=head2 summary
+
+The summary of the object. This is the long description of the album or caption of the photo.
+
+=head2 author_name
+
+This is the author/owner of the object.
+
+=head2 author_uri
+
+This is the URL to get the author's public albums on Picasa Web.
+
+=head2 entry_id
+
+This is the ID that may be used with the object type to uniquely identify (and lookup) this object.
+
+=head2 user_id
+
+This is the account ID of the user.
+
+=head2 latitude
+
+This is the geo-coded latitude of the object.
+
+=head2 longitude
+
+This is the geo-coded longitude of the object.
+
+=head1 METHODS
+
+=head2 from_feed
+
+  my $feed = $class->from_feed($service, $entry);
+
+This method creates the feed object from the service object and an L<XML::Twig::Elt> representing the element returned descring that object.
+
 =head1 AUTHOR
 
-Andrew Sterling Hanenkamp, C<< <hanenkamp at cpan.org> >>
+Andrew Sterling Hanenkamp <hanenkamp@cpan.org>
 
-=head1 COPYRIGHT & LICENSE
+=head1 COPYRIGHT AND LICENSE
 
-Copyright 2008 Andrew Sterling Hanenkamp
+This software is copyright (c) 2011 by Andrew Sterling Hanenkamp.
 
-This program is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
 
 =cut
 
-1;

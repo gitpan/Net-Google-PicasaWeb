@@ -1,13 +1,35 @@
-use strict;
-use warnings;
-
 package Net::Google::PicasaWeb::Comment;
 BEGIN {
-  $Net::Google::PicasaWeb::Comment::VERSION = '0.10';
+  $Net::Google::PicasaWeb::Comment::VERSION = '0.11';
 }
 use Moose;
 
+# ABSTRACT: represents a single Picasa Web comment
+
 extends 'Net::Google::PicasaWeb::Feed';
+
+
+has content => (
+    is          => 'rw',
+    isa         => 'Str',
+);
+
+
+override from_feed => sub {
+    my ($class, $service, $entry) = @_;
+    my $self = $class->super($service, $entry);
+
+    $self->content($entry->field('content'));
+    return $self;
+};
+
+
+__PACKAGE__->meta->make_immutable;
+
+1;
+
+__END__
+=pod
 
 =head1 NAME
 
@@ -15,7 +37,7 @@ Net::Google::PicasaWeb::Comment - represents a single Picasa Web comment
 
 =head1 VERSION
 
-version 0.10
+version 0.11
 
 =head1 SYNOPSIS
 
@@ -43,13 +65,6 @@ This is the name of the person that made the comment. See L<Net::Google::PicasaW
 
 This is the comment that was made.
 
-=cut
-
-has content => (
-    is => 'rw',
-    isa => 'Str',
-);
-
 =head2 author_name
 
 This is the author of the comment. See L<Net::Google::PicasaWeb::Feed/author_name>.
@@ -58,31 +73,20 @@ This is the author of the comment. See L<Net::Google::PicasaWeb::Feed/author_nam
 
 This is the URL to get to the author's public albums on Picasa Web. See L<Net::Google::PicasaWeb::Feed/author_uri>.
 
-=cut
-
-override from_feed => sub {
-    my ($class, $service, $entry) = @_;
-    my $self = $class->super($service, $entry);
-
-    $self->content($entry->field('content'));
-    return $self;
-};
-
 =head2 entry_id
 
 This is the unique ID for the comment. See L<Net::Google::PicasaWeb::Feed/entry_id>.
 
 =head1 AUTHOR
 
-Andrew Sterling Hanenkamp, C<< <hanenkamp at cpan.org> >>
+Andrew Sterling Hanenkamp <hanenkamp@cpan.org>
 
-=head1 COPYRIGHT & LICENSE
+=head1 COPYRIGHT AND LICENSE
 
-Copyright 2008 Andrew Sterling Hanenkamp
+This software is copyright (c) 2011 by Andrew Sterling Hanenkamp.
 
-This program is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
 
 =cut
 
-1;

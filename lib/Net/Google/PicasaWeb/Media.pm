@@ -1,113 +1,40 @@
-use strict;
-use warnings;
-
 package Net::Google::PicasaWeb::Media;
 BEGIN {
-  $Net::Google::PicasaWeb::Media::VERSION = '0.10';
+  $Net::Google::PicasaWeb::Media::VERSION = '0.11';
 }
 use Moose;
+
+# ABSTRACT: hold information about a photo or video
 
 extends 'Net::Google::PicasaWeb::Base';
 
 use Carp;
 
-=head1 NAME
-
-Net::Google::PicasaWeb::Media - hold information about a photo or video
-
-=head1 VERSION
-
-version 0.10
-
-=head1 SYNOPSIS
-
-  my @photos = $album->list_media_entries;
-  for my $photo (@photos) {
-      my $media_info = $photo->photo;
-
-      print "Image Title: ", $media_info->title, "\n";
-      print "Image Description: ", $media_info->description, "\n\n";
-
-      my $main_photo = $media_info->content;
-      print "Image URL: ", $main_photo->url, "\n";
-      print "Image MIME Type: ", $main_photo->mime_type, "\n";
-      print "Image Medium: ", $main_photo->medium, "\n";
-
-      print "Thumbnails:\n\n";
-      
-      for my $thumbnail ($media_info->thumbnails) {
-          print "    Thumbnail URL: ", $thumbnail->url, "\n";
-          print "    Thumbnail Dimensions: ", 
-              $thumbnail->width, "x", $thumbnail->height, "\n\n";
-
-          my $photo_data = $thumbnail->fetch;
-          $thumbnail->fetch( file => 'thumbnail.jpg' );
-      }
-    
-      my $photo_data = $main_photo->fetch;
-      $main_photo->fetch( file => 'photo.jpg' );
-  }
-
-=head1 DESCRIPTION
-
-This is where you will find information about the photos, videos, and thumbnails themselves. You can get information about them with this object, such as the URL that can be used to download the media file. This object (and its children) also provide some features to fetching this information.
-
-This class extends L<Net::Google::PicasaWeb::Base>.
-
-=head1 ATTRIBUTE
-
-=head2 title
-
-This is the title of the photo or video.
-
-=cut
 
 has title => (
-    is => 'rw',
-    isa => 'Str',
+    is         => 'rw',
+    isa        => 'Str',
 );
 
-=head2 description
-
-This is a description for the photo or video.
-
-=cut
 
 has description => (
-    is => 'rw',
-    isa => 'Str',
+    is          => 'rw',
+    isa         => 'Str',
 );
 
-=head2 content
-
-This is the main photo or video item attached to the media information entry. See L</MEDIA CONTENT> below for information about the object returned.
-
-=cut
 
 has content => (
-    is => 'rw',
-    isa => 'Net::Google::PicasaWeb::Media::Content',
+    is          => 'rw',
+    isa         => 'Net::Google::PicasaWeb::Media::Content',
 );
 
-=head2 thumbnails
-
-This is an array of object containing information about the thumbnails that were attached when the photo was retrieved from the server.  See L</THUMBNAILS> below for information about these objects.
-
-=cut
 
 has thumbnails => (
-    is => 'rw',
-    isa => 'ArrayRef[Net::Google::PicasaWeb::Media::Thumbnail]',
-    auto_deref => 1,
+    is          => 'rw',
+    isa         => 'ArrayRef[Net::Google::PicasaWeb::Media::Thumbnail]',
+    auto_deref  => 1,
 );
 
-=head1 METHODS
-
-=head2 from_feed
-
-Builds a media class from a service object and reference to a C<< <media:group> >> object in L<XML::Twig::Elt>.
-
-=cut
 
 sub from_feed {
     my ($class, $service, $media_group) = @_;
@@ -171,9 +98,171 @@ sub _fetch {
 
 package Net::Google::PicasaWeb::Media::Content;
 BEGIN {
-  $Net::Google::PicasaWeb::Media::Content::VERSION = '0.10';
+  $Net::Google::PicasaWeb::Media::Content::VERSION = '0.11';
 }
 use Moose;
+
+
+has media => (
+    is          => 'rw',
+    isa         => 'Net::Google::PicasaWeb::Media',
+    required    => 1,
+    weak_ref    => 1,
+);
+
+
+has url => (
+    is          => 'rw',
+    isa         => 'Str',
+);
+
+
+has mime_type => (
+    is         => 'rw',
+    isa        => 'Str',
+);
+
+
+has medium => (
+    is          => 'rw',
+    isa         => 'Str',
+);
+
+
+has width => (
+    is          => 'rw', 
+    isa         => 'Int',
+);
+
+
+has height => (
+    is          => 'rw',
+    isa         => 'Int',
+);
+
+
+has size => (
+    is          => 'rw',
+    isa         => 'Int',
+);
+
+
+sub fetch {
+    my $self = shift;
+    return $self->media->_fetch($self, @_);
+}
+
+package Net::Google::PicasaWeb::Media::Thumbnail;
+BEGIN {
+  $Net::Google::PicasaWeb::Media::Thumbnail::VERSION = '0.11';
+}
+use Moose;
+
+
+has media => (
+    is          => 'rw',
+    isa         => 'Net::Google::PicasaWeb::Media',
+    required    => 1,
+    weak_ref    => 1,
+);
+
+
+has url => (
+    is          => 'rw',
+    isa         => 'Str',
+);
+
+
+has width => (
+    is          => 'rw',
+    isa         => 'Int',
+);
+
+
+has height => (
+    is          => 'rw',
+    isa         => 'Int',
+);
+
+
+sub fetch {
+    my $self = shift;
+    return $self->media->_fetch($self, @_);
+}
+
+__PACKAGE__->meta->make_immutable;
+
+1;
+
+__END__
+=pod
+
+=head1 NAME
+
+Net::Google::PicasaWeb::Media - hold information about a photo or video
+
+=head1 VERSION
+
+version 0.11
+
+=head1 SYNOPSIS
+
+  my @photos = $album->list_media_entries;
+  for my $photo (@photos) {
+      my $media_info = $photo->photo;
+
+      print "Image Title: ", $media_info->title, "\n";
+      print "Image Description: ", $media_info->description, "\n\n";
+
+      my $main_photo = $media_info->content;
+      print "Image URL: ", $main_photo->url, "\n";
+      print "Image MIME Type: ", $main_photo->mime_type, "\n";
+      print "Image Medium: ", $main_photo->medium, "\n";
+
+      print "Thumbnails:\n\n";
+      
+      for my $thumbnail ($media_info->thumbnails) {
+          print "    Thumbnail URL: ", $thumbnail->url, "\n";
+          print "    Thumbnail Dimensions: ", 
+              $thumbnail->width, "x", $thumbnail->height, "\n\n";
+
+          my $photo_data = $thumbnail->fetch;
+          $thumbnail->fetch( file => 'thumbnail.jpg' );
+      }
+    
+      my $photo_data = $main_photo->fetch;
+      $main_photo->fetch( file => 'photo.jpg' );
+  }
+
+=head1 DESCRIPTION
+
+This is where you will find information about the photos, videos, and thumbnails themselves. You can get information about them with this object, such as the URL that can be used to download the media file. This object (and its children) also provide some features to fetching this information.
+
+This class extends L<Net::Google::PicasaWeb::Base>.
+
+=head1 ATTRIBUTE
+
+=head2 title
+
+This is the title of the photo or video.
+
+=head2 description
+
+This is a description for the photo or video.
+
+=head2 content
+
+This is the main photo or video item attached to the media information entry. See L</MEDIA CONTENT> below for information about the object returned.
+
+=head2 thumbnails
+
+This is an array of object containing information about the thumbnails that were attached when the photo was retrieved from the server.  See L</THUMBNAILS> below for information about these objects.
+
+=head1 METHODS
+
+=head2 from_feed
+
+Builds a media class from a service object and reference to a C<< <media:group> >> object in L<XML::Twig::Elt>.
 
 =head1 MEDIA CONTENT
 
@@ -185,36 +274,13 @@ The object returned from the L</content> accessor is an object with the followin
 
 This is the parent L<Net::Google::PicasaWeb::Media> object.
 
-=cut
-
-has media => (
-    is => 'rw',
-    isa => 'Net::Google::PicasaWeb::Media',
-    required => 1,
-    weak_ref => 1,
-);
-
 =head3 url
 
 This is the URL where the photo or video may be downloaded from.
 
-=cut
-
-has url => (
-    is => 'rw',
-    isa => 'Str',
-);
-
 =head3 mime_type
 
 This is the MIME-Type of the photo or video.
-
-=cut
-
-has mime_type => (
-    is => 'rw',
-    isa => 'Str',
-);
 
 =head3 medium
 
@@ -232,45 +298,17 @@ video
 
 =back
 
-=cut
-
-has medium => (
-    is => 'rw',
-    isa => 'Str',
-);
-
 =head3 width
 
 The width of the photo in pixels.
-
-=cut
-
-has width => (
-    is => 'rw',  # should probably be 'ro'
-    isa => 'Int',
-);
 
 =head3 height
 
 The height of the photo in pixels.
 
-=cut
-
-has height => (
-    is => 'rw',  # should probably be 'ro'
-    isa => 'Int',
-);
-
 =head3 size
 
 The file size of the photo in bytes.
-
-=cut
-
-has size => (
-    is => 'rw',
-    isa => 'Int',
-);
 
 =head1 METHODS
 
@@ -290,19 +328,6 @@ If given, the data will not be returned, but saved to the named file instead.
 
 =back
 
-=cut
-
-sub fetch {
-    my $self = shift;
-    return $self->media->_fetch($self, @_);
-}
-
-package Net::Google::PicasaWeb::Media::Thumbnail;
-BEGIN {
-  $Net::Google::PicasaWeb::Media::Thumbnail::VERSION = '0.10';
-}
-use Moose;
-
 =head1 THUMBNAILS
 
 Each thumbnail returned represents an individual image resource used as a thumbnail for the main item. Each one has the following attributes and methods.
@@ -313,47 +338,17 @@ Each thumbnail returned represents an individual image resource used as a thumbn
 
 This is the parent L<Net::Google::PicasaWeb::Media> object.
 
-=cut
-
-has media => (
-    is => 'rw',
-    isa => 'Net::Google::PicasaWeb::Media',
-    required => 1,
-    weak_ref => 1,
-);
-
 =head3 url
 
 This is the URL where the thumbnail image can be pulled down from.
-
-=cut
-
-has url => (
-    is => 'rw',
-    isa => 'Str',
-);
 
 =head3 width
 
 This is the pixel width of the image.
 
-=cut
-
-has width => (
-    is => 'rw',
-    isa => 'Int',
-);
-
 =head3 height
 
 This is the pixel height of the image.
-
-=cut
-
-has height => (
-    is => 'rw',
-    isa => 'Int',
-);
 
 =head1 METHODS
 
@@ -373,24 +368,16 @@ If given, the data will not be returned, but saved to the named file instead.
 
 =back
 
-=cut
-
-sub fetch {
-    my $self = shift;
-    return $self->media->_fetch($self, @_);
-}
-
 =head1 AUTHOR
 
-Andrew Sterling Hanenkamp, C<< <hanenkamp at cpan.org> >>
+Andrew Sterling Hanenkamp <hanenkamp@cpan.org>
 
-=head1 COPYRIGHT & LICENSE
+=head1 COPYRIGHT AND LICENSE
 
-Copyright 2008 Andrew Sterling Hanenkamp
+This software is copyright (c) 2011 by Andrew Sterling Hanenkamp.
 
-This program is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
 
 =cut
 
-1;

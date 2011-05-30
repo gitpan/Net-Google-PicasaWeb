@@ -4,7 +4,7 @@ use warnings;
 
 
 
-use ExtUtils::MakeMaker 6.31;
+use ExtUtils::MakeMaker 6.30;
 
 
 
@@ -13,13 +13,16 @@ my %WriteMakefileArgs = (
   'AUTHOR' => 'Andrew Sterling Hanenkamp <hanenkamp@cpan.org>',
   'BUILD_REQUIRES' => {},
   'CONFIGURE_REQUIRES' => {
-    'ExtUtils::MakeMaker' => '6.31'
+    'ExtUtils::MakeMaker' => '6.30'
   },
   'DISTNAME' => 'Net-Google-PicasaWeb',
   'EXE_FILES' => [
-    'script/picasa-list',
-    'script/picasa',
-    'script/picasa-get'
+    'bin/picasa',
+    'bin/picasa-get',
+    'bin/picasa-list',
+    'bin/picasa',
+    'bin/picasa-get',
+    'bin/picasa-list'
   ],
   'LICENSE' => 'perl',
   'NAME' => 'Net::Google::PicasaWeb',
@@ -35,7 +38,7 @@ my %WriteMakefileArgs = (
     'URI' => '0',
     'XML::Twig' => '3.30'
   },
-  'VERSION' => '0.10',
+  'VERSION' => '0.11',
   'test' => {
     'TESTS' => 't/*.t'
   }

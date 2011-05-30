@@ -1,13 +1,84 @@
-use strict;
-use warnings;
-
 package Net::Google::PicasaWeb::MediaEntry;
 BEGIN {
-  $Net::Google::PicasaWeb::MediaEntry::VERSION = '0.10';
+  $Net::Google::PicasaWeb::MediaEntry::VERSION = '0.11';
 }
 use Moose;
 
+# ABSTRACT: represents a single Picasa Web photo or video
+
 extends 'Net::Google::PicasaWeb::MediaFeed';
+
+
+has album_id => (
+    is          => 'rw',
+    isa         => 'Str',
+);
+
+
+has width => (
+    is          => 'rw',
+    isa         => 'Int',
+);
+
+
+has height => (
+    is          => 'rw',
+    isa         => 'Int',
+);
+
+
+has size => (
+    is          => 'rw',
+    isa         => 'Int',
+);
+
+
+override from_feed => sub {
+    my ($class, $service, $entry) = @_;
+    my $self = $class->super($service, $entry);
+
+    $self->album_id($entry->field('gphoto:albumid'));
+
+    $self->width($entry->field('gphoto:width'))
+        if $entry->field('gphoto:width');
+    $self->height($entry->field('gphoto:height'))
+        if $entry->field('gphoto:height');
+    $self->size($entry->field('gphoto:size'))
+        if $entry->field('gphoto:size');
+
+    return $self;
+};
+
+
+sub list_tags {
+    my ($self, %params) = @_;
+    $params{kind} = 'tag';
+
+    return $self->service->list_entries(
+        'Net::Google::PicasaWeb::Tag',
+        $self->url,
+        %params
+    );
+}
+
+
+sub list_comments {
+    my ($self, %params) = @_;
+    $params{kind} = 'comment';
+
+    return $self->service->list_entries(
+        'Net::Google::PicasaWeb::Comment',
+        $self->url,
+        %params
+    );
+}
+
+__PACKAGE__->meta->make_immutable;
+
+1;
+
+__END__
+=pod
 
 =head1 NAME
 
@@ -15,7 +86,7 @@ Net::Google::PicasaWeb::MediaEntry - represents a single Picasa Web photo or vid
 
 =head1 VERSION
 
-version 0.10
+version 0.11
 
 =head1 SYNOPSIS
 
@@ -70,65 +141,19 @@ This is a link to the L<Net::Google::PicasaWeb::Media> object that is used to re
 
 This is the ID of the album that the photo belongs to.
 
-=cut
-
-has album_id => (
-    is => 'rw',
-    isa => 'Str',
-);
-
 =head2 width
 
 The width of the video or photo in pixels.
-
-=cut
-
-has width => (
-    is => 'rw',  # should probably be 'ro'
-    isa => 'Int',
-);
 
 =head2 height
 
 The height of the video or photo in pixels.
 
-=cut
-
-has height => (
-    is => 'rw',  # should probably be 'ro'
-    isa => 'Int',
-);
-
 =head2 size
 
 The size of the video or photo in bytes.
 
-=cut
-
-has size => (
-    is => 'rw',  # should probably be 'ro'
-    isa => 'Int',
-);
-
 =head1 METHODS
-
-=cut
-
-override from_feed => sub {
-    my ($class, $service, $entry) = @_;
-    my $self = $class->super($service, $entry);
-
-    $self->album_id($entry->field('gphoto:albumid'));
-
-    $self->width($entry->field('gphoto:width'))
-        if $entry->field('gphoto:width');
-    $self->height($entry->field('gphoto:height'))
-        if $entry->field('gphoto:height');
-    $self->size($entry->field('gphoto:size'))
-        if $entry->field('gphoto:size');
-
-    return $self;
-};
 
 =head2 list_tags
 
@@ -136,49 +161,22 @@ Lists tags used in the albums.
 
 This method takes the L<Net::Google::PicasaWeb/STANDARD LIST OPTIONS>.
 
-=cut
-
-sub list_tags {
-    my ($self, %params) = @_;
-    $params{kind} = 'tag';
-
-    return $self->service->list_entries(
-        'Net::Google::PicasaWeb::Tag',
-        $self->url,
-        %params
-    );
-}
-
 =head2 list_comments
 
 Lists comments used in the albums.
 
 This method takes the L<Net::Google::PicasaWeb/STANDARD LIST OPTIONS>.
 
-=cut
-
-sub list_comments {
-    my ($self, %params) = @_;
-    $params{kind} = 'comment';
-
-    return $self->service->list_entries(
-        'Net::Google::PicasaWeb::Comment',
-        $self->url,
-        %params
-    );
-}
-
 =head1 AUTHOR
 
-Andrew Sterling Hanenkamp, C<< <hanenkamp at cpan.org> >>
+Andrew Sterling Hanenkamp <hanenkamp@cpan.org>
 
-=head1 COPYRIGHT & LICENSE
+=head1 COPYRIGHT AND LICENSE
 
-Copyright 2008 Andrew Sterling Hanenkamp
+This software is copyright (c) 2011 by Andrew Sterling Hanenkamp.
 
-This program is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
 
 =cut
 
-1;

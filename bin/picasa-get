@@ -2,6 +2,9 @@
 use strict;
 use warnings;
 
+# PODNAME: picasa-get
+# ABSTRACT: fetch albums and photos from Google Picasa Web
+
 use Getopt::Long;
 use IO::Prompt;
 use Pod::Usage;
@@ -170,7 +173,9 @@ sub download_photos {
     }
 }
 
-__END__
+
+
+=pod
 
 =head1 NAME
 
@@ -178,7 +183,7 @@ picasa-get - fetch albums and photos from Google Picasa Web
 
 =head1 VERSION
 
-version 0.10
+version 0.11
 
 =head1 SYNOPSIS
 
@@ -212,6 +217,10 @@ version 0.10
 =head1 DESCRIPTION
 
 This script will download photos from the Picasa Web site based upon a query you give. This will download all files into the current working directory. If albums are downloaded (the default unless B<--kind> is set to "photo"), subdirectories will be created for each album and the photos will be placed within those.
+
+=head1 NAME
+
+picasa-get - fetch albums and photos from Google Picasa Web
 
 =head1 OPTIONS
 
@@ -338,4 +347,19 @@ Copyright 2008 Andrew Sterling Hanenkamp
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
 
+=head1 AUTHOR
+
+Andrew Sterling Hanenkamp <hanenkamp@cpan.org>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2011 by Andrew Sterling Hanenkamp.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
 =cut
+
+
+__END__
+
