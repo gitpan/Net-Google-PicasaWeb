@@ -1,6 +1,6 @@
 package Net::Google::PicasaWeb::MediaEntry;
-BEGIN {
-  $Net::Google::PicasaWeb::MediaEntry::VERSION = '0.11';
+{
+  $Net::Google::PicasaWeb::MediaEntry::VERSION = '0.12';
 }
 use Moose;
 
@@ -33,9 +33,15 @@ has size => (
 );
 
 
+has timestamp => (
+    is => 'rw',  # should probably be 'ro'
+    isa => 'Int',
+);
+
+
 override from_feed => sub {
     my ($class, $service, $entry) = @_;
-    my $self = $class->super($service, $entry);
+    my $self = super();
 
     $self->album_id($entry->field('gphoto:albumid'));
 
@@ -45,6 +51,8 @@ override from_feed => sub {
         if $entry->field('gphoto:height');
     $self->size($entry->field('gphoto:size'))
         if $entry->field('gphoto:size');
+    $self->timestamp($entry->field('gphoto:timestamp'))
+         if $entry->field('gphoto:timestamp');
 
     return $self;
 };
@@ -78,6 +86,7 @@ __PACKAGE__->meta->make_immutable;
 1;
 
 __END__
+
 =pod
 
 =head1 NAME
@@ -86,7 +95,7 @@ Net::Google::PicasaWeb::MediaEntry - represents a single Picasa Web photo or vid
 
 =head1 VERSION
 
-version 0.11
+version 0.12
 
 =head1 SYNOPSIS
 
@@ -153,6 +162,10 @@ The height of the video or photo in pixels.
 
 The size of the video or photo in bytes.
 
+=head2 timestamp
+
+The timestamp of the video or photo in bytes.
+
 =head1 METHODS
 
 =head2 list_tags
@@ -173,10 +186,9 @@ Andrew Sterling Hanenkamp <hanenkamp@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2011 by Andrew Sterling Hanenkamp.
+This software is copyright (c) 2013 by Andrew Sterling Hanenkamp.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
 
 =cut
-

@@ -1,6 +1,6 @@
 package Net::Google::PicasaWeb::Album;
-BEGIN {
-  $Net::Google::PicasaWeb::Album::VERSION = '0.11';
+{
+  $Net::Google::PicasaWeb::Album::VERSION = '0.12';
 }
 use Moose;
 
@@ -27,7 +27,7 @@ has number_of_photos => (
 
 override from_feed => sub {
     my ($class, $service, $entry) = @_;
-    my $self = $class->super($service, $entry);
+    my $self = super();
 
     $self->bytes_used($entry->field('gphoto:bytesUsed'))
         if $entry->field('gphoto:bytesUsed');
@@ -70,6 +70,7 @@ __PACKAGE__->meta->make_immutable;
 1;
 
 __END__
+
 =pod
 
 =head1 NAME
@@ -78,7 +79,7 @@ Net::Google::PicasaWeb::Album - represents a single Picasa Web photo album
 
 =head1 VERSION
 
-version 0.11
+version 0.12
 
 =head1 SYNOPSIS
 
@@ -169,10 +170,9 @@ Andrew Sterling Hanenkamp <hanenkamp@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2011 by Andrew Sterling Hanenkamp.
+This software is copyright (c) 2013 by Andrew Sterling Hanenkamp.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
 
 =cut
-

@@ -1,13 +1,15 @@
 package Net::Google::PicasaWeb;
-BEGIN {
-  $Net::Google::PicasaWeb::VERSION = '0.11';
+{
+  $Net::Google::PicasaWeb::VERSION = '0.12';
 }
 use Moose;
 
 # ABSTRACT: use Google's Picasa Web API
 
 use Carp;
+use HTTP::Message;
 use HTTP::Request::Common;
+use HTTP::Request;
 use LWP::UserAgent;
 use Net::Google::AuthSub;
 use URI;
@@ -113,11 +115,63 @@ sub get_album {
 }
 
 
+sub add_album {
+    my ($self, %params) = @_;
+
+    my $twig = XML::Twig->new(
+        pretty_print => 'indented',
+        empty_tags   => 'expand',
+    );
+
+    my $root = XML::Twig::Elt->new(
+        'entry' => {
+            'xmlns'        => 'http://www.w3.org/2005/Atom',
+            'xmlns:media'  => 'http://search.yahoo.com/mrss/',
+            'xmlns:gphoto' => 'http://schemas.google.com/photos/2007',
+        }
+    );
+
+    $twig->set_root($root);
+
+    $root->insert_new_elt('last_child', title => {type => 'text'}, $params{title});
+    $root->insert_new_elt('last_child', summary => {type => 'text'}, $params{summary});
+
+    foreach my $gphoto ('location', 'access', 'commentingEnabled', 'timestamp') {
+        $root->insert_new_elt('last_child', 'gphoto:' . $gphoto, $params{$gphoto});
+    }
+
+    my $group = $root->insert_new_elt('last_child', 'media:group');
+
+    if (defined $params{keywords}) {
+        $group->insert_new_elt('last_child', 'media:keywords', join(', ', $params{keywords}));
+    }
+
+    $root->insert_new_elt('last_child',
+        'category' => {
+            'scheme' => 'http://schemas.google.com/g/2005#kind',
+            'term'   => 'http://schemas.google.com/photos/2007#album'
+        }
+    );
+
+    my $uri = $self->service_base_url . 'user/default';
+    my $response = $self->request('POST', $uri, $twig->sprint(), 'application/atom+xml');
+
+    $twig->purge();
+
+    if ($response->is_error) {
+        croak $response->status_line;
+    }
+
+    my @entries = $self->_parse_feed('Net::Google::PicasaWeb::Album', 'entry', $response->content);
+    return scalar $entries[0];
+}
+
+
 # This is a tiny cheat that allows us to reuse the list_entries method
 {
     package Net::Google::PicasaWeb::Tag;
-BEGIN {
-  $Net::Google::PicasaWeb::Tag::VERSION = '0.11';
+{
+  $Net::Google::PicasaWeb::Tag::VERSION = '0.12';
 }
 
     sub from_feed {
@@ -241,12 +295,79 @@ sub get_photo { shift->get_media_entry(@_) }
 sub get_video { shift->get_media_entry(@_) }
 
 
+sub add_media_entry {
+    my ($self, %params) = @_;
+
+    my $user_id   = delete $params{user_id} || 'default';
+    my $album_id  = delete $params{album_id} || 'default';
+    my $data_type = delete $params{data_type} || 'image/jpeg';
+
+    # Prepare Atom
+    my $twig = XML::Twig->new(
+        pretty_print => 'indented',
+        empty_tags   => 'expand',
+    );
+
+    my $root = XML::Twig::Elt->new(
+        'entry' => {
+            'xmlns'        => 'http://www.w3.org/2005/Atom',
+        }
+    );
+
+    $twig->set_root($root);
+
+    $root->insert_new_elt('last_child', title => {type => 'text'}, $params{title});
+    $root->insert_new_elt('last_child', summary => {type => 'text'}, $params{summary});
+
+    # TODO:
+    #   <media:group>
+    #       <media:keywords>
+    #           keyword, keyword, ...
+    #       </media:keywords>
+    #   </media:group>
+
+    $root->insert_new_elt('last_child',
+        'category' => {
+            'scheme' => 'http://schemas.google.com/g/2005#kind',
+            'term'   => 'http://schemas.google.com/photos/2007#photo'
+        }
+    );
+
+    # Prepare REST message
+    my $uri = $self->service_base_url . "user/$user_id/albumid/$album_id";
+    my $request = HTTP::Request->new(POST => $uri, [$self->authenticator->auth_params,
+                                                    'Content-Type' => 'multipart/related',
+                                                    'MIME-version' => '1.0']);
+    $request->add_part(HTTP::Message->new(['Content-Type' => 'application/atom+xml'], $twig->sprint()));
+    $request->add_part(HTTP::Message->new(['Content-Type' => $data_type], $params{data}));
+
+    # Clear unneeded Twig
+    $twig->purge();
+
+    my $response = $self->user_agent->request($request);
+
+    $request->clear();
+
+    if ($response->is_error) {
+        croak $response->status_line;
+    }
+
+    # FIXME: Should be proper parser here
+    my @entries = $self->_parse_feed('Net::Google::PicasaWeb::MediaEntry', 'entry', $response->content);
+    return scalar $entries[0];
+}
+
+*add_photo = *add_media_entry;
+*add_video = *add_media_entry;
+
+
 sub request {
     my $self    = shift;
     my $method  = shift;
     my $path    = shift;
-    my $query   = $method eq 'GET' ? shift : undef;
+    my $query   = ($method eq 'GET') ? shift : undef;
     my $content = shift;
+    my $type    = (($method eq 'POST') or ($method eq 'PUT')) ? shift : undef;
 
     my @headers = $self->authenticator->auth_params;
 
@@ -256,8 +377,8 @@ sub request {
     {
         local $_ = $method;
         if    (/GET/)    { $request = GET   ($url, @headers) }
-        elsif (/POST/)   { $request = POST  ($url, @headers, Content => $content) }
-        elsif (/PUT/)    { $request = PUT   ($url, @headers, Content => $content) }
+        elsif (/POST/)   { $request = POST  ($url, @headers, Content => $content, Content_Type => $type) }
+        elsif (/PUT/)    { $request = PUT   ($url, @headers, Content => $content, Content_Type => $type) }
         elsif (/DELETE/) { $request = DELETE($url, @headers) }
         else             { confess "unknown method [$_]" }
     }
@@ -322,6 +443,7 @@ __PACKAGE__->meta->make_immutable;
 1;
 
 __END__
+
 =pod
 
 =head1 NAME
@@ -330,7 +452,7 @@ Net::Google::PicasaWeb - use Google's Picasa Web API
 
 =head1 VERSION
 
-version 0.11
+version 0.12
 
 =head1 SYNOPSIS
 
@@ -362,6 +484,8 @@ version 0.11
   # Listing comments (see Net::Google::PicasaWeb::Comment)
   my @recent         = $service->list_comments( user_id => 'jondoe', max_results => 10 );
   my @photo_comments = $photo->list_comments;
+
+=encoding utf8
 
 =head1 ATTRIBUTES
 
@@ -438,6 +562,46 @@ This method also takes the L</STANDARD LIST OPTIONS>.
 This will fetch a single album from the Picasa Web Albums using the given C<user_id> and C<album_id>. If C<user_id> is omitted, then "default" will be used instead.
 
 This method returns C<undef> if no such album exists.
+
+=head2 add_album
+
+Create a new album for the current authenticated user.
+
+  my $album = $service->add_album(
+      title             => 'Trip to Italy',
+      summary           => 'This was the recent trip I took to Italy',
+      location          => 'Italy',
+      access            => 'public',
+      commentingEnabled => 'true',
+      timestamp         => '1152255600000',
+      keywords          => ('italy', 'vacation'),
+  );
+
+=over
+
+=item title
+
+The title of a new album.
+
+=item summary
+
+A small description of the album.
+
+=item location
+
+The location of the place where the photos have been taken.
+
+=item access
+
+The type of access to this album. It could be C<public> or C<private>.
+
+=back
+
+The default values will be applied by PicasaWeb on the server side.
+
+See
+C<http://code.google.com/intl/en-US/apis/picasaweb/developers_guide_protocol.html#AddAlbums>
+for details.
 
 =head2 list_tags
 
@@ -526,6 +690,22 @@ Returns a specific photo or video entry when given a C<user_id>, C<album_id>, an
 
 If no such photo or video can be found, C<undef> will be returned.
 
+=head2 add_media_entry
+
+=head2 add_photo
+
+=head2 add_video
+
+  my $media_entry = $service->add_media_entry(
+      user_id   => $user_id,
+      album_id  => $album_id,
+      title     => $title,
+      summary   => $summary,
+      keywords  => ($keyword, $keyword, ),
+      data      => $binary,
+      data_type => $content_type,
+  );
+
 =head1 HELPERS
 
 These helper methods are used to do some of the work.
@@ -556,7 +736,7 @@ Several of the listing methods return entries that can be modified by setting th
 
 =item access
 
-This is the L<http://code.google.com/apis/picasaweb/reference.html#Visibility|visibility value> to limit the returned results to.
+This is the L<visibility value|http://code.google.com/apis/picasaweb/reference.html#Visibility> to limit the returned results to.
 
 =item thumbsize
 
@@ -568,13 +748,13 @@ By passing a single scalar or an array reference of scalars, e.g.,
   thumbsize => [ qw( 104c 640u d ) ],
   thumbsize => '1440u,1280u',
 
-You may select the size or sizes of thumbnails attached to the items returned. Please see the L<http://code.google.com/apis/picasaweb/reference.html#Parameters|parameters> documentation for a description of valid values.
+You may select the size or sizes of thumbnails attached to the items returned. Please see the L<parameters|http://code.google.com/apis/picasaweb/reference.html#Parameters> documentation for a description of valid values.
 
 =item imgmax
 
 This option is only used when listing albums and photos or videos.
 
-This is a single scalar selecting the size of the main image to return with the items found. Please see the L<http://code.google.com/apis/picasaweb/reference.html#Parameters|parameters> documentation for a description of valid values.
+This is a single scalar selecting the size of the main image to return with the items found. Please see the L<parameters|http://code.google.com/apis/picasaweb/reference.html#Parameters> documentation for a description of valid values.
 
 =item tag
 
@@ -644,6 +824,28 @@ L<http://search.cpan.org/dist/Net-Google-PicasaWeb>
 
 =head1 ACKNOWLEDGEMENTS
 
+Authors:
+
+=over
+
+=item *
+
+Sterling Hanenkamp (zostay)
+
+=item *
+
+Andy Shevchenko (andy-shev)
+
+=item *
+
+Benjamin Thomas (bth0mas)
+
+=item *
+
+Tomáš Znamenáček (zoul)
+
+=back
+
 Thanks to:
 
 =over
@@ -664,10 +866,9 @@ Andrew Sterling Hanenkamp <hanenkamp@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2011 by Andrew Sterling Hanenkamp.
+This software is copyright (c) 2013 by Andrew Sterling Hanenkamp.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
 
 =cut
-

@@ -1,6 +1,6 @@
 package Net::Google::PicasaWeb::Base;
-BEGIN {
-  $Net::Google::PicasaWeb::Base::VERSION = '0.11';
+{
+  $Net::Google::PicasaWeb::Base::VERSION = '0.12';
 }
 use Moose;
 
@@ -31,6 +31,7 @@ __PACKAGE__->meta->make_immutable;
 1;
 
 __END__
+
 =pod
 
 =head1 NAME
@@ -39,7 +40,7 @@ Net::Google::PicasaWeb::Base - base class
 
 =head1 VERSION
 
-version 0.11
+version 0.12
 
 =head1 DESCRIPTION
 
@@ -75,10 +76,9 @@ Andrew Sterling Hanenkamp <hanenkamp@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2011 by Andrew Sterling Hanenkamp.
+This software is copyright (c) 2013 by Andrew Sterling Hanenkamp.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
 
 =cut
-

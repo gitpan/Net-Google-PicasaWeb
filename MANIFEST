@@ -19,6 +19,7 @@ lib/Net/Google/PicasaWeb/Media.pm
 lib/Net/Google/PicasaWeb/MediaEntry.pm
 lib/Net/Google/PicasaWeb/MediaFeed.pm
 t/00-load.t
+t/data/add_album.xml
 t/data/get_album.xml
 t/data/get_comment.xml
 t/data/get_media_entry.xml
@@ -28,6 +29,7 @@ t/data/list_media_entries.xml
 t/data/list_tags.xml
 t/lib/Net/Google/PicasaWeb/Test.pm
 t/offline.t
+t/offline/Net/Google/PicasaWeb/Test/AddAlbum.pm
 t/offline/Net/Google/PicasaWeb/Test/GetAlbum.pm
 t/offline/Net/Google/PicasaWeb/Test/GetComment.pm
 t/offline/Net/Google/PicasaWeb/Test/GetMediaEntry.pm

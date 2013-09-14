@@ -1,6 +1,6 @@
 package Net::Google::PicasaWeb::Media;
-BEGIN {
-  $Net::Google::PicasaWeb::Media::VERSION = '0.11';
+{
+  $Net::Google::PicasaWeb::Media::VERSION = '0.12';
 }
 use Moose;
 
@@ -97,8 +97,8 @@ sub _fetch {
 }
 
 package Net::Google::PicasaWeb::Media::Content;
-BEGIN {
-  $Net::Google::PicasaWeb::Media::Content::VERSION = '0.11';
+{
+  $Net::Google::PicasaWeb::Media::Content::VERSION = '0.12';
 }
 use Moose;
 
@@ -153,8 +153,8 @@ sub fetch {
 }
 
 package Net::Google::PicasaWeb::Media::Thumbnail;
-BEGIN {
-  $Net::Google::PicasaWeb::Media::Thumbnail::VERSION = '0.11';
+{
+  $Net::Google::PicasaWeb::Media::Thumbnail::VERSION = '0.12';
 }
 use Moose;
 
@@ -195,6 +195,7 @@ __PACKAGE__->meta->make_immutable;
 1;
 
 __END__
+
 =pod
 
 =head1 NAME
@@ -203,7 +204,7 @@ Net::Google::PicasaWeb::Media - hold information about a photo or video
 
 =head1 VERSION
 
-version 0.11
+version 0.12
 
 =head1 SYNOPSIS
 
@@ -374,10 +375,9 @@ Andrew Sterling Hanenkamp <hanenkamp@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2011 by Andrew Sterling Hanenkamp.
+This software is copyright (c) 2013 by Andrew Sterling Hanenkamp.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
 
 =cut
-

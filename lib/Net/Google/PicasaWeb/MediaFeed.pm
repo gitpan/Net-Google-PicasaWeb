@@ -1,6 +1,6 @@
 package Net::Google::PicasaWeb::MediaFeed;
-BEGIN {
-  $Net::Google::PicasaWeb::MediaFeed::VERSION = '0.11';
+{
+  $Net::Google::PicasaWeb::MediaFeed::VERSION = '0.12';
 }
 use Moose;
 
@@ -16,7 +16,7 @@ has photo => (
 
 override from_feed => sub {
     my ($class, $service, $entry) = @_;
-    my $self = $class->super($service, $entry);
+    my $self = super();
 
     if ($entry->has_child('media:group')) {
         my $media = Net::Google::PicasaWeb::Media->from_feed(
@@ -33,6 +33,7 @@ __PACKAGE__->meta->make_immutable;
 1;
 
 __END__
+
 =pod
 
 =head1 NAME
@@ -41,7 +42,7 @@ Net::Google::PicasaWeb::MediaFeed - base class for media feed entries
 
 =head1 VERSION
 
-version 0.11
+version 0.12
 
 =head1 DESCRIPTION
 
@@ -59,10 +60,9 @@ Andrew Sterling Hanenkamp <hanenkamp@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2011 by Andrew Sterling Hanenkamp.
+This software is copyright (c) 2013 by Andrew Sterling Hanenkamp.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
 
 =cut
-
